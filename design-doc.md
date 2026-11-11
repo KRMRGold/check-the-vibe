@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe
 type: project-design
-version: 0.7.0
+version: 0.7.1
 status: design-refinement
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
@@ -307,7 +307,7 @@ The game should separate **what the rules consider a good play** from **who or w
 Possible judging formats include:
 
 - **Automatic evaluation:** The game evaluates a choice using the ruleset, song attributes, current Crowd Vibe, and match history. This supports competitive formats that should not let opponents directly upvote or downvote one another's choices.
-- **Host / Card Czar:** A designated host judges the submitted songs and selects the choice they think best answers the round or fits the current situation. The host role may rotate or remain with one person, depending on the rules.
+- **Designated Judge:** A selected participant evaluates the submitted songs and chooses the one they think best answers the round or fits the current situation. This role may belong to the host, rotate between players, or be assigned in another way depending on the rules.
 - **Group decision:** Players collectively vote or react to submissions. This is suited to social, party, or collaborative formats where group preference is intentionally part of the experience.
 - **Audience / live crowd:** Spectators participate in judging without necessarily being active players. They can vote or react through their own devices.
 - **Live chat:** A streaming audience, such as a streamer's chat, can act as the crowd through supported reactions or voting. The exact integration and moderation behavior remain open.
@@ -508,7 +508,7 @@ Potential fields:
 - `participant_roles` (optional)
 - `host_display_configuration` (optional)
 - `judging_mode` (optional: automatic, host, group, audience, or live chat)
-- `judge_id` (optional designated host/Card Czar)
+- `judge_id` (optional designated designated judge)
 - `crowd_vibe_state` (optional session-level state)
 - `audience_participants` (optional spectators who are not active players)
 - `ruleset_id`
@@ -859,7 +859,7 @@ The game is secondary to the music collection. Development should reflect that.
 
 - Additional game modes and rulesets.
 - Constructed-deck play as the standard format, with optional booster/draft formats.
-- Host/Card Czar, group-vote, audience, and live-chat judging options.
+- Designated Judge, group-vote, audience, and live-chat judging options.
 - Separate Crowd Vibe and Player Reputation systems.
 - Physical, digital, and hybrid play support.
 - More detailed compatibility evaluation.
@@ -1210,7 +1210,7 @@ The initial product foundation should be considered successful when:
 - A match can begin with a random song card that establishes the initial Crowd Vibe.
 - The game model distinguishes shared Crowd Vibe from individual Player Reputation.
 - The design supports players bringing personal constructed decks as the normal format, while leaving room for booster/draft formats.
-- Judging can be configured separately from the ruleset, including automatic evaluation, a host/Card Czar, group voting, an audience, or live chat.
+- Judging can be configured separately from the ruleset, including automatic evaluation, a designated judge, group voting, an audience, or live chat.
 - Competitive rulesets can avoid opponent upvotes/downvotes when direct voting would introduce bias.
 - The core game is designed to support physical, digital, and hybrid play.
 - The design leaves room for optional game rules without requiring them.
