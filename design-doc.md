@@ -610,7 +610,7 @@ This section records the intended stack, not evidence that it has been implement
 
 ---
 
-## 18. External Music Services
+## 8. External Music Services
 
 ### 7.1 General approach
 
@@ -702,7 +702,7 @@ User-created tags and metadata should remain possible regardless of the provider
 
 ---
 
-## 18. Multiplayer and Session Behavior
+## 9. Multiplayer and Session Behavior
 
 ### 8.1 Turn order
 
@@ -743,7 +743,7 @@ Users should be able to save the resulting deck to their library and continue ed
 
 ---
 
-## 18. Visual and Interaction Priorities
+## 10. Visual and Interaction Priorities
 
 The interface should prioritize the following:
 
@@ -760,7 +760,7 @@ The card system should make music more tangible and browsable, not add friction 
 
 ---
 
-## 18. Initial Scope and Development Priorities
+## 11. Initial Scope and Development Priorities
 
 The game is secondary to the music collection. Development should reflect that.
 
@@ -816,7 +816,7 @@ This ordering is provisional. The main objective is to establish the underlying 
 
 ---
 
-## 18. Out of Scope for the Initial Version
+## 12. Out of Scope for the Initial Version
 
 Unless later adopted, the initial version does not require:
 
@@ -833,7 +833,7 @@ These ideas may be revisited if they become useful, but they should not delay th
 
 ---
 
-## 18. Existing Applications and Prior Art
+## 13. Existing Applications and Prior Art
 
 These examples are references for specific parts of the concept. They are not all direct competitors, and none should be assumed to provide the entire intended system.
 
@@ -972,7 +972,7 @@ The product should compete on the coherence of that combined experience rather t
 
 ---
 
-## 18. Development Workflow
+## 14. Development Workflow
 
 ### 13.1 Adopted workflow
 
@@ -1063,7 +1063,7 @@ Do not treat a designed feature as implemented or an unexecuted test as passed.
 
 ---
 
-## 18. Relevant Meta-Modules
+## 15. Relevant Meta-Modules
 
 The following modules inform the project's collaboration and development process.
 
@@ -1112,7 +1112,7 @@ Follow the project's applicable tool-use restrictions and approval boundaries wh
 
 ---
 
-## 18. Open Decisions
+## 16. Open Decisions
 
 The following questions remain unresolved and should be addressed when they materially affect the next design or implementation stage. The product name, desktop-first target, optional app-account model, multi-route playback direction, and per-deck visibility options have been decided at the product-design level; implementation details and provider-specific capabilities still require verification.
 
@@ -1127,7 +1127,7 @@ These are design questions, not commitments to implement every possible option.
 
 ---
 
-## 18. Initial Acceptance Criteria
+## 17. Initial Acceptance Criteria
 
 The initial product foundation should be considered successful when:
 
