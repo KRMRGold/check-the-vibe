@@ -1,13 +1,13 @@
 ---
-name: Pass the Aux
+name: Check the Vibe
 type: project-design
-version: 0.1.0
-status: concept
+version: 0.2.0
+status: design-refinement
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
 ---
 
-# Pass the Aux — Initial Design
+# Check the Vibe — Initial Design
 
 **Working tagline:** Your music. Your deck. Your rules.
 
@@ -15,7 +15,7 @@ workflow_version: 1.6.0
 
 ### 1.1 Core concept
 
-Pass the Aux is a music collection and playlist-building application with an optional social music game built around the same underlying system.
+Check the Vibe is a music collection and playlist-building application with an optional social music game built around the same underlying system.
 
 The central idea is that **songs are represented as cards**.
 
@@ -54,7 +54,9 @@ The visual identity should support:
 - Customizable decks and song cards.
 - An optional competitive or cooperative game experience.
 
-The name **Pass the Aux** is provisional because existing applications already use it.
+The initial target is a **desktop application**. The design should not assume that users must create a Check the Vibe account to use ordinary collection and playlist features. Authentication should be requested only when a connected external service requires it for a specific operation.
+
+The product is named **Check the Vibe**. The earlier working title, **Pass the Aux**, is no longer the product name; it may remain a possible name for a specific game mode, but that has not been decided.
 
 ---
 
@@ -115,6 +117,13 @@ Users can:
 - Export a deck to an external music service where supported.
 
 A song can belong to multiple decks without being duplicated in the library.
+
+Each deck should have its own visibility setting, supporting:
+- **Private:** visible only to its owner (and authorized collaborators, if collaboration is enabled).
+- **Shareable by link:** accessible to people with the link.
+- **Public:** discoverable by other users.
+
+Visibility is configured per deck, not globally for the account.
 
 Examples:
 - Punk Favorites
@@ -340,7 +349,7 @@ Automated compatibility should be treated as a suggestion or input to a ruleset,
 
 ## 6. Data Model
 
-The initial conceptual model should separate song identity, collection membership, and session activity.
+The initial conceptual model should separate song identity, collection membership, and session activity. The model should remain independent of any one playback or metadata provider.
 
 ### 6.1 Song
 
@@ -372,7 +381,7 @@ Potential fields:
 - `name`
 - `description`
 - `owner_id`
-- `visibility`
+- `visibility` (private, link-shareable, or public)
 - `created_at`
 - `updated_at`
 
@@ -465,7 +474,19 @@ Separate the following operations:
 
 A song record should remain useful even if an external provider is unavailable.
 
-### 7.2 YouTube
+The library and its song records are provider-independent. External services are integrations that may contribute metadata, matching, playback, import, or export capabilities; no single provider should define the app's underlying collection.
+
+### 7.2 Playback routes
+
+The intended playback model supports three routes, subject to each provider's technical capabilities and terms:
+
+- **External providers:** connect to a supported music service and play through its authorized integration, or open the track in that service when direct playback is unavailable.
+- **Local files:** play music files available on the host device, without requiring an external music account.
+- **Embedded players:** use supported, authorized embedded players where the provider permits them.
+
+Playback should be represented through a common app-level interface, while acknowledging that different providers expose different capabilities. The app must not assume that every provider supports the same controls, playback behavior, or metadata access.
+
+### 7.3 YouTube
 
 YouTube playlist export is a potential early integration.
 
@@ -483,7 +504,7 @@ Important limitation: a YouTube video is not necessarily the official song recor
 
 YouTube export should be treated as a playlist integration, not as permission to download or redistribute music.
 
-### 7.3 Spotify
+### 7.4 Spotify
 
 Spotify is a significant policy risk for this particular concept.
 
@@ -495,13 +516,13 @@ Spotify's 2026 developer-access changes also impose significant limits on Develo
 
 The product should therefore avoid making Spotify a required dependency for the core game or its compatibility calculations.
 
-### 7.4 Apple Music
+### 7.5 Apple Music
 
 Apple Music's MusicKit supports catalog search, playback, and user-authorized playlist creation.
 
 It is a potential integration to investigate separately. Its current terms and capabilities should be checked before committing to a specific game or playback design.
 
-### 7.5 Provider-independent metadata
+### 7.6 Provider-independent metadata
 
 The app should investigate music metadata sources that permit the intended use.
 
@@ -824,6 +845,9 @@ The last accepted version must remain recoverable throughout implementation and 
 ### 13.4 Versioning and document policy
 
 - Use Semantic Versioning for independently versioned code/build artifacts.
+- Give this living design document its own internal SemVer version in the YAML front matter. This document version is independent of application/code release versions.
+- Increment the document version when its contents materially change: **PATCH** for corrections and clarifications that do not change the design; **MINOR** for additive design changes or newly resolved decisions that preserve the overall direction; **MAJOR** for a fundamental redesign or incompatible change to the documented product direction.
+- Update the single canonical `design-doc.md` in place. Git history preserves prior revisions; do not create version-suffixed copies.
 - Keep one canonical initial design document.
 - Keep one canonical maintenance document.
 - Keep one canonical milestone document when needed.
@@ -915,16 +939,11 @@ Follow the project's applicable tool-use restrictions and approval boundaries wh
 
 ## 15. Open Decisions
 
-These questions remain unresolved and should be addressed when they materially affect the next design or implementation stage.
+The following questions remain unresolved and should be addressed when they materially affect the next design or implementation stage. The product name, desktop-first target, optional app-account model, multi-route playback direction, and per-deck visibility options have been decided at the product-design level; implementation details and provider-specific capabilities still require verification.
 
-1. **Project name:** What name should replace or distinguish the working title?
-2. **Initial platform:** Should the first implementation target web, desktop, mobile, or a combination?
-3. **Playback model:** Should music play through external providers, a host device, or a supported embedded player?
-4. **Metadata sources:** Which sources can provide usable song metadata and BPM under acceptable licensing and API terms?
-5. **Accounts and sharing:** What should be available to guests, and what requires an account?
-6. **Session hosting:** Should sessions require a host, or should participants share control equally?
-7. **Deck visibility:** Should decks be private by default, shareable by link, or discoverable publicly?
-8. **Game rules:** Which initial game rules would be worth testing after the collection and listening experience exists?
+1. **Metadata sources:** Which sources can provide usable song metadata and BPM under acceptable licensing and API terms?
+2. **Session hosting:** Should sessions require a host, or should participants share control equally?
+3. **Game rules:** Which initial game rules would be worth testing after the collection and listening experience exists?
 
 These are design questions, not commitments to implement every possible option.
 
@@ -934,6 +953,11 @@ These are design questions, not commitments to implement every possible option.
 
 The initial product foundation should be considered successful when:
 
+- The app's initial target is desktop.
+- Ordinary collection and playlist use does not require a Check the Vibe account.
+- The app's music records are not dependent on a single external provider.
+- Playback architecture can accommodate external providers, local files, and supported embedded players.
+- Decks support private, link-shareable, and public visibility settings.
 - A user can create and maintain a song library.
 - A song can be represented as a card.
 - The same collection can be browsed in list and card views.
@@ -951,21 +975,22 @@ These criteria describe the initial foundation, not a completed application.
 
 ## 17. Current Project State
 
-**State:** S1 — Initial design
+**State:** S2 — Design refinement
 
-**Status:** Concept / design draft
+**Status:** Concept / refined design draft
+
+**Design document version:** 0.2.0
 
 **Implemented:** Nothing established by this document.
 
 **Verified:** Prior-art references and selected API documentation were researched; no application code or integration has been tested.
 
-**Next development state:** S2 — Design refinement
+**Next development state:** S3 — Ready to implement, after the remaining design decisions and acceptance checks are sufficiently resolved
 
 **Immediate priorities:**
-1. Refine the product name and identity.
-2. Resolve the initial platform and playback assumptions.
-3. Confirm the core library, deck, and session relationships.
-4. Refine the first implementation scope.
-5. Establish the project repository and canonical documentation paths.
+1. Identify metadata sources and verify their licensing, permitted uses, and available fields.
+2. Decide how session hosting and participant control should work.
+3. Select a small initial scope for the first implementation.
+4. Define observable acceptance checks for the collection and deck foundation.
 
 The project should remain flexible during exploration. The design is a reference for development, not a requirement to implement every idea in this document.
