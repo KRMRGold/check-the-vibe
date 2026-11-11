@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe
 type: project-design
-version: 0.6.0
+version: 0.7.0
 status: design-refinement
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
@@ -612,7 +612,7 @@ This section records the intended stack, not evidence that it has been implement
 
 ## 8. External Music Services
 
-### 7.1 General approach
+### 8.1 General approach
 
 The application should not depend on a single music provider for its entire existence.
 
@@ -628,7 +628,7 @@ A song record should remain useful even if an external provider is unavailable. 
 
 The library and its song records are provider-independent. External services are integrations that may contribute metadata, matching, playback, import, or export capabilities; no single provider should define the app's underlying collection.
 
-### 7.2 Playback routes
+### 8.2 Playback routes
 
 The intended playback model supports three routes, subject to each provider's technical capabilities and terms:
 
@@ -638,11 +638,14 @@ The intended playback model supports three routes, subject to each provider's te
 
 Playback should be represented through a common app-level interface, while acknowledging that different providers expose different capabilities. The app must not assume that every provider supports the same controls, playback behavior, or metadata access.
 
-### 7.3 YouTube
+### 8.3 YouTube
 
-YouTube is a potential early import and export integration.
+YouTube is a potential early import, export, and playback integration. It uses two separate APIs with different responsibilities:
 
-For import, the intended workflow is to read a user's playlist entries and their available identifiers and metadata through authorized access. The app does not download the audio. Each entry is matched to a song record where possible; the playlist becomes an imported deck, and matched songs become reusable library cards.
+- **YouTube Data API v3:** Search for videos, retrieve video and playlist metadata, read playlist entries, and—when the user authorizes it—create playlists and add videos.
+- **YouTube IFrame Player API:** Embed and control YouTube playback in the application. It supports player controls and events such as ready, playing, paused, ended, and errors. It is the playback interface, not the app's canonical song-metadata source.
+
+For import, the intended workflow is to read a user's playlist entries and their available identifiers and metadata through the Data API and required authorization. The app does not download the audio. Each entry is matched to a song record where possible; the playlist becomes an imported deck, and matched songs become reusable library cards.
 
 For export, the YouTube Data API supports creating playlists and adding videos to them with user authorization.
 
@@ -665,9 +668,18 @@ The basic export process would be:
 
 Important limitation: a YouTube video is not necessarily the official song recording. Matching must account for alternate versions, live performances, covers, duplicates, and unrelated results.
 
+#### YouTube API implementation notes
+
+- Use `search.list` for user-directed video discovery and `videos.list` to retrieve details for selected video IDs. The latter can provide video title, channel, thumbnails, and duration.
+- Use `playlists.list` and `playlistItems.list` for playlist information and ordered entries. User-owned private playlists and playlist creation/modification require the appropriate OAuth authorization; request only the scopes needed for the feature being used.
+- Use `videos.list` for details on known IDs rather than repeatedly searching for the same item. Search is comparatively quota-expensive: the documented default allocation has a 10,000-unit daily quota, with search requests consuming 100 units and many list requests consuming 1 unit. Quotas can change and should be checked during implementation.
+- Use the IFrame Player API for embedded playback, not downloaded or locally cached audio. Playback can fail when a video is removed, private, unavailable, or not permitted to play in an embed. Browser autoplay restrictions also apply.
+- YouTube API data has specific storage and refresh requirements. API data generally must be refreshed or deleted within 30 days unless a stated policy exception applies. Keep YouTube-sourced metadata separate from independently sourced or user-entered song metadata, and design refresh/deletion behavior before persisting it.
+- Follow YouTube's branding, attribution, user notice, privacy-policy, and API Terms requirements. Do not scrape YouTube or bypass embed restrictions.
+
 YouTube export should be treated as a playlist integration, not as permission to download or redistribute music.
 
-### 7.4 Spotify
+### 8.4 Spotify
 
 Spotify is a significant policy risk for this particular concept.
 
@@ -679,27 +691,70 @@ Spotify's 2026 developer-access changes also impose significant limits on Develo
 
 The product should therefore avoid making Spotify a required dependency for the core game or its compatibility calculations.
 
-### 7.5 Apple Music
+### 8.5 Apple Music
 
 Apple Music's MusicKit supports catalog search, playback, and user-authorized playlist creation.
 
 It is a potential integration to investigate separately. Its current terms and capabilities should be checked before committing to a specific game or playback design.
 
-### 7.6 Provider-independent metadata
+### 8.6 Metadata APIs and song identification
 
-The app should investigate music metadata sources that permit the intended use.
+The initial metadata approach should use a provider-independent song record, with external catalogs contributing information rather than defining the identity of a song.
 
-Metadata providers must be evaluated for:
-- Licensing.
-- Attribution requirements.
-- Commercial-use restrictions.
-- API limits.
-- Data accuracy.
-- Availability of BPM and genre information.
-- Artwork rights.
+#### Primary metadata source: MusicBrainz
 
-User-created tags and metadata should remain possible regardless of the provider.
+Use the **MusicBrainz API (Web Service v2)** as the initial structured music-metadata source to investigate and integrate.
 
+It supports search and lookup for entities including recordings, releases, release groups, and artists. It can provide useful identifiers and relationships for distinguishing recordings, releases, performers, and alternate versions. Prefer recording-level matches when identifying an individual song, and retain MusicBrainz IDs and ISRCs when available.
+
+MusicBrainz does not require an API key for ordinary lookups, but requests must include a meaningful application User-Agent. Its published rate limit is approximately one request per second per source IP, so requests should be queued, throttled, and cached appropriately. The service is free for non-commercial use; confirm the applicable terms before any commercial use or monetized deployment.
+
+#### Artwork: Cover Art Archive
+
+Use the **Cover Art Archive** alongside MusicBrainz when release artwork is available. Artwork is associated with MusicBrainz release IDs, so it is not guaranteed for every recording or release. Preserve source attribution and follow the archive's image and data-use guidance. Do not assume every image is available for unrestricted redistribution.
+
+#### Secondary catalog: Apple iTunes Search API
+
+The **iTunes Search API** is a possible supplementary lookup source for track and album matching and additional catalog fields. It returns catalog search results in JSON and supports ID-based lookup.
+
+Treat it as an optional enrichment/matching source, not the canonical identity system. Apple's terms limit promotional content such as artwork and audio previews to promotion of store content; preview audio and other promotional assets have additional display requirements. Do not use iTunes previews as a general playback source or assume its artwork can be reused freely in song cards.
+
+Apple Music's separate MusicKit / Apple Music API may later be evaluated for authorized catalog access, playback, and playlist operations; that is distinct from the iTunes Search API.
+
+#### Attributes that need another source or user input
+
+Catalog APIs do not reliably provide every attribute the game wants. In particular, BPM, energy, danceability, mood, and transition compatibility should not be assumed to exist in a complete, consistently licensed form across catalogs.
+
+Treat these as separate data classes:
+- **Catalog metadata:** title, artist credits, release, recording identifiers, ISRC, release date, and available genre/tag information.
+- **Provider metadata:** provider-specific IDs, links, video details, and service-specific fields.
+- **Estimated musical attributes:** BPM or other measurements produced by a separately evaluated analysis method.
+- **User-authored attributes:** tags, mood descriptions, ratings, corrections, and notes.
+- **Game-derived values:** compatibility results, Crowd Vibe changes, and Player Reputation changes.
+
+Every imported or estimated value should retain its source and, where useful, confidence and retrieval time. Conflicting catalog results should be presented as candidate matches for user review rather than silently merged.
+
+#### Initial integration priority
+
+1. MusicBrainz API for song/recording identification and core metadata.
+2. Cover Art Archive for available release artwork.
+3. YouTube Data API v3 for video discovery and playlist import/export.
+4. YouTube IFrame Player API for embedded playback.
+5. iTunes Search API as an optional secondary matching/enrichment source.
+
+The exact provider mix may change after implementation testing and a review of licensing, terms, quota limits, and the intended public distribution model.
+
+### 8.7 API and policy references
+
+- [YouTube Data API overview](https://developers.google.com/youtube/v3/getting-started)
+- [YouTube Data API reference](https://developers.google.com/youtube/v3/docs)
+- [YouTube IFrame Player API](https://developers.google.com/youtube/iframe_api_reference)
+- [YouTube API Services Developer Policies](https://developers.google.com/youtube/terms/developer-policies)
+- [MusicBrainz API](https://musicbrainz.org/doc/MusicBrainz_API)
+- [MusicBrainz rate limiting](https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting)
+- [Cover Art Archive API](https://musicbrainz.org/doc/Cover_Art_Archive/API)
+- [Apple iTunes Search API](https://performance-partners.apple.com/search-api)
+- [Apple Music API](https://developer.apple.com/documentation/applemusicapi)
 ---
 
 ## 9. Multiplayer and Session Behavior
@@ -1116,7 +1171,7 @@ Follow the project's applicable tool-use restrictions and approval boundaries wh
 
 The following questions remain unresolved and should be addressed when they materially affect the next design or implementation stage. The product name, desktop-first target, optional app-account model, multi-route playback direction, and per-deck visibility options have been decided at the product-design level; implementation details and provider-specific capabilities still require verification.
 
-1. **Metadata sources:** Which sources can provide usable song metadata and BPM under acceptable licensing and API terms?
+1. **Musical attribute analysis:** Which approach should provide BPM, energy, mood, and other estimated attributes that catalog APIs do not reliably supply? Metadata catalog starting points are documented in Section 8; licensing and commercial-use details still need confirmation before deployment.
 2. **Session hosting:** Which session types require a host, and which should allow participants to share control equally?
 3. **Party participation:** Should party sessions allow guest participation without creating an account, and which participant devices should be supported initially?
 4. **Game rules and judging:** Which initial rules should govern the random opening song, Crowd Vibe, Player Reputation, and song evaluation?
@@ -1170,7 +1225,7 @@ These criteria describe the initial foundation, not a completed application.
 
 **Status:** Concept / refined design draft
 
-**Design document version:** 0.6.0
+**Design document version:** 0.7.0
 
 **Implemented:** Nothing established by this document.
 
