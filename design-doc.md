@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe
 type: project-design
-version: 0.7.1
+version: 0.7.2
 status: design-refinement
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
@@ -404,7 +404,10 @@ Potential compatibility dimensions:
 - Energy changes.
 - Musical contrast.
 - Genre transitions.
+- **Duration and pacing:** Whether a song's length works in the context of the current playlist, round, or intended listening experience. A long song can sustain or deepen a vibe, but may also stall momentum; a short song can provide a sharp change or punctuation, but may feel abrupt or cut a developing atmosphere short.
 - Overall listening flow.
+
+Duration should be evaluated contextually rather than treated as a fixed penalty. A song being unusually long or short is not inherently incompatible; its effect depends on the surrounding sequence, the current vibe, and the kind of experience the players are trying to create.
 
 **Creative compatibility**
 - Unexpected combinations.
