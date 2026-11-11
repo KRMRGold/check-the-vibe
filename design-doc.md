@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe
 type: project-design
-version: 0.4.0
+version: 0.5.0
 status: design-refinement
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
@@ -277,6 +277,55 @@ Potential mechanics:
 
 The game should be modular enough that different rulesets can be introduced without changing the underlying song library or deck system.
 
+#### 4.3.1 Song-card match flow
+
+The core card-game direction is that players normally bring their own prepared song decks into a match. This is the standard constructed-deck format: each player selects songs from their reusable library and assembles a deck before play.
+
+A match begins by selecting a random song card from an agreed pool. This opening song establishes the match's **initial Crowd Vibe** through its musical attributes, such as genre, mood, energy, and tempo. It gives every match a different starting atmosphere and a shared musical context for the turns that follow.
+
+Players then take turns playing songs from their own decks. Each choice is evaluated in relation to the current Crowd Vibe, the songs already played, and the active ruleset. A choice can reinforce the current atmosphere, transition it in a new direction, deliberately contrast with it, or attempt to recover a declining vibe.
+
+The match tracks two related but distinct measures:
+
+- **Crowd Vibe:** The shared atmosphere of the match. It rises or falls as songs change the direction and energy of the crowd.
+- **Player Reputation:** Each player's accumulated performance or contribution during the match. It reflects how successfully their choices satisfy the active rules and judging method.
+
+These measures should not be conflated. A song might change the overall vibe in an unexpected direction while still earning its player recognition for a creative or strategically effective choice. The ruleset determines how these outcomes interact and whether either measure affects victory.
+
+#### 4.3.2 Deck formats
+
+Constructed decks are the normal play format: players bring their own prepared song decks.
+
+The system should also leave room for booster and draft formats in which players receive or select from temporary song pools and build a deck as part of the match. These formats may use shared or randomized song selections and should not require every selected song to become a permanent addition to a player's library.
+
+Both formats use the same underlying song cards, deck model, and ruleset system.
+
+#### 4.3.3 Judging and crowd formats
+
+The game should separate **what the rules consider a good play** from **who or what evaluates the play**. A ruleset defines the relevant criteria and consequences; a session's judging format determines the source of the evaluation.
+
+Possible judging formats include:
+
+- **Automatic evaluation:** The game evaluates a choice using the ruleset, song attributes, current Crowd Vibe, and match history. This supports competitive formats that should not let opponents directly upvote or downvote one another's choices.
+- **Host / Card Czar:** A designated host judges the submitted songs and selects the choice they think best answers the round or fits the current situation. The host role may rotate or remain with one person, depending on the rules.
+- **Group decision:** Players collectively vote or react to submissions. This is suited to social, party, or collaborative formats where group preference is intentionally part of the experience.
+- **Audience / live crowd:** Spectators participate in judging without necessarily being active players. They can vote or react through their own devices.
+- **Live chat:** A streaming audience, such as a streamer's chat, can act as the crowd through supported reactions or voting. The exact integration and moderation behavior remain open.
+
+These formats are alternatives or configurable components, not requirements that every match combines. A host may judge while a separate audience influences Crowd Vibe, for example. Competitive rulesets should be able to disable opponent voting to avoid direct voting bias; social rulesets may deliberately use group or audience judgment.
+
+The judging source can influence Crowd Vibe, Player Reputation, round outcomes, or some combination, as specified by the ruleset. The design should not assume that a crowd's popularity response is an objective measure of musical quality.
+
+#### 4.3.4 Physical and digital play
+
+The card game should be designed with both physical and digital play in mind, similar to the distinction between playing a tabletop trading-card game in person and playing a digital adaptation.
+
+- **Physical play:** Players can use printed song cards and personal decks, take turns, and follow a ruleset in person. A host or group can judge choices using the agreed rules. The physical game should have a viable way to operate without requiring every player to use the app.
+- **Digital play:** The app can manage digital song cards, personal decks, turn order, playback, scoring, judging, and online sessions.
+- **Hybrid play:** People around a physical table can use the app as an optional companion for playback, scorekeeping, audience participation, or other supported functions. Remote participants or spectators may also be able to join a shared session.
+
+The physical and digital experiences should share the same core game concepts and rules where practical. The app may add convenience and automation, but physical play should remain a deliberate design consideration rather than an afterthought.
+
 ### 4.4 Hybrid mode
 
 A hybrid session combines ordinary listening with optional game mechanics.
@@ -458,6 +507,10 @@ Potential fields:
 - `join_code` (optional)
 - `participant_roles` (optional)
 - `host_display_configuration` (optional)
+- `judging_mode` (optional: automatic, host, group, audience, or live chat)
+- `judge_id` (optional designated host/Card Czar)
+- `crowd_vibe_state` (optional session-level state)
+- `audience_participants` (optional spectators who are not active players)
 - `ruleset_id`
 - `created_at`
 - `ended_at`
@@ -476,10 +529,12 @@ Potential fields:
 - `added_at`
 - `score`
 - `evaluation`
+- `crowd_vibe_change` (optional)
+- `player_reputation_change` (optional)
 
 ### 6.6 Player
 
-Represents a participant in a session.
+Represents an active participant in a session. Spectators or audience members may be represented through a separate participant role or audience-participant record, depending on the eventual session architecture.
 
 Potential fields:
 - `id`
@@ -681,6 +736,8 @@ The game is secondary to the music collection. Development should reflect that.
 - Create and join sessions.
 - Participant list and turn order.
 - Add songs to a shared queue.
+- Explore the initial match flow: random opening song, initial Crowd Vibe, player turns, and separate Crowd Vibe / Player Reputation tracking.
+- Define a first judging option, such as automatic evaluation or host judgment.
 - Session history.
 - Save a completed session as a deck.
 - Explore a host-display and participant-device layout.
@@ -696,6 +753,10 @@ The game is secondary to the music collection. Development should reflect that.
 ### Phase 4 — Expanded game and party experiences
 
 - Additional game modes and rulesets.
+- Constructed-deck play as the standard format, with optional booster/draft formats.
+- Host/Card Czar, group-vote, audience, and live-chat judging options.
+- Separate Crowd Vibe and Player Reputation systems.
+- Physical, digital, and hybrid play support.
 - More detailed compatibility evaluation.
 - Expanded scoring rules and player feedback.
 - Hybrid listening and game sessions.
@@ -1008,7 +1069,9 @@ The following questions remain unresolved and should be addressed when they mate
 1. **Metadata sources:** Which sources can provide usable song metadata and BPM under acceptable licensing and API terms?
 2. **Session hosting:** Which session types require a host, and which should allow participants to share control equally?
 3. **Party participation:** Should party sessions allow guest participation without creating an account, and which participant devices should be supported initially?
-4. **Game rules:** Which initial game rules would be worth testing alongside the collection and listening experience?
+4. **Game rules and judging:** Which initial rules should govern the random opening song, Crowd Vibe, Player Reputation, and song evaluation?
+5. **Physical play:** What minimum rules, card information, and scoring aids are needed for a self-contained in-person version?
+6. **Audience participation:** Which audience or live-chat interactions are worth supporting, and how should they be moderated?
 
 These are design questions, not commitments to implement every possible option.
 
@@ -1039,6 +1102,12 @@ The initial product foundation should be considered successful when:
 - The design separates reusable collections from temporary session activity.
 - The same library, cards, and decks can support listening, playlist creation, games, and hosted party experiences without duplicating song records.
 - A hosted party experience can present a main display and separate participant-device interactions from one shared session state.
+- A match can begin with a random song card that establishes the initial Crowd Vibe.
+- The game model distinguishes shared Crowd Vibe from individual Player Reputation.
+- The design supports players bringing personal constructed decks as the normal format, while leaving room for booster/draft formats.
+- Judging can be configured separately from the ruleset, including automatic evaluation, a host/Card Czar, group voting, an audience, or live chat.
+- Competitive rulesets can avoid opponent upvotes/downvotes when direct voting would introduce bias.
+- The core game is designed to support physical, digital, and hybrid play.
 - The design leaves room for optional game rules without requiring them.
 
 These criteria describe the initial foundation, not a completed application.
@@ -1051,7 +1120,7 @@ These criteria describe the initial foundation, not a completed application.
 
 **Status:** Concept / refined design draft
 
-**Design document version:** 0.4.0
+**Design document version:** 0.5.0
 
 **Implemented:** Nothing established by this document.
 
@@ -1063,6 +1132,8 @@ These criteria describe the initial foundation, not a completed application.
 1. Identify metadata sources and verify their licensing, permitted uses, and available fields.
 2. Define the first playlist import flow, including how imported decks and reusable library cards are created and matched.
 3. Decide how session hosting and participant control should work.
-4. Define a small initial scoring/compatibility mechanic and observable acceptance checks for the collection, deck, and game foundation.
+4. Define the initial match loop: random opening song, Crowd Vibe, player turns, and Player Reputation.
+5. Choose one first judging format and define observable scoring/compatibility acceptance checks.
+6. Identify the minimum requirements for physical play without committing to a complete printed-card product.
 
 The project should remain flexible during exploration. The design is a reference for development, not a requirement to implement every idea in this document.
