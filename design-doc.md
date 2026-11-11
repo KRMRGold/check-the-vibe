@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe
 type: project-design
-version: 0.3.0
+version: 0.4.0
 status: design-refinement
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
@@ -25,17 +25,18 @@ Users can organize these song cards into **decks**, which function as playlists.
 
 The card-game aspect is part of the product's initial design, not a feature to exclude from the first version. Collection and playlist building provide the foundation, while scoring and game mechanics operate on the same cards and decks.
 
-The same song library and decks should support three broad experiences:
+The same song library, cards, decks, and sessions should support several complementary experiences:
 
-1. **Collect and organize:** Import playlists and song lists, build a reusable song library, and create or reorganize decks.
-2. **Listen together:** Take turns adding songs to a shared listening session.
-3. **Play the game:** Use song cards, compatibility evaluations, challenges, and scoring as part of the same collection and playlist experience. Game rules may be optional or session-specific, but scoring is not excluded from the initial product scope.
+1. **Listen:** Play music in the app through supported playback routes, browse collections, and listen through decks.
+2. **Create:** Import, build, reorganize, and share playlists and collections.
+3. **Play:** Use song cards in turn-based games involving compatibility, tags, BPM, mood, creative choices, and scoring.
+4. **Party:** Host a Jackbox-style group experience where one screen presents the game and participants join and interact from their own phones or devices.
 
-The application should not force users to play a game to use its music features.
+These are different ways to use the same underlying music system, not separate products. The application should remain useful for ordinary personal listening and playlist management without requiring multiplayer or game participation. Game mechanics and an initial testable scoring/compatibility mechanic remain part of the initial product design.
 
 ### 1.2 Design principle
 
-**One music collection, multiple ways to interact with it.**
+**One music collection, multiple experiences.** Listening, playlist creation, card games, and party sessions should share the same underlying songs, decks, and session model.
 
 A song should not need to be recreated for every playlist or game. It should have one reusable identity in the user's collection and be referenced by any number of decks and sessions.
 
@@ -156,13 +157,13 @@ A session is a temporary or ongoing shared activity involving multiple participa
 A session can use an existing deck, a selection of decks, or an initially empty collection.
 
 A session has its own:
-- Participants.
-- Turn order.
+- Participants and participant roles.
+- Turn order and interaction state.
 - Song queue.
-- Current song.
-- Playback state.
+- Current song and playback state.
 - Session history.
 - Optional game rules and scores.
+- Optional host display and participant-device views, including a join code or QR-based entry flow for party sessions.
 
 A session is distinct from a deck:
 
@@ -195,11 +196,12 @@ Possible navigation structure:
 - Library
 - Decks
 - Sessions
+- Party games / hosted sessions
 - Shared with me
 - Favorites
 - Recently added
 
-The exact navigation layout remains open to refinement.
+The exact navigation layout remains open to refinement. The product should feel like one application with distinct experiences or modes, rather than four disconnected applications.
 
 ### 3.3 Song card interactions
 
@@ -211,7 +213,7 @@ A song card should support:
 - Playing or opening the song through a supported provider.
 - Viewing its tags and attributes.
 
-Card interactions should remain consistent between the library, deck, and session views.
+Card interactions should remain consistent between the library, deck, and session views. The same song card should remain recognizable and reusable across listening, playlist creation, ordinary game sessions, and party games.
 
 ### 3.4 Visual direction
 
@@ -284,6 +286,29 @@ Players take turns adding songs, the playlist grows, and the game evaluates choi
 The result should still be a usable playlist after the session ends.
 
 This is important: the game should create something people actually want to listen to afterward.
+
+### 4.5 Party mode
+
+Party mode is a hosted, Jackbox-style experience built on the same session and song-card system.
+
+A typical flow:
+
+1. A host starts a party session on the desktop app or another supported main display.
+2. The app presents a room code and/or QR code.
+3. Participants join from their phones or other devices, with guest participation as a design goal where practical.
+4. The main display presents the current round, shared music, queue, prompts, and results.
+5. Participants use their own devices to submit songs, select cards, vote, answer prompts, or make other choices required by the ruleset.
+6. The session updates the shared state and presents the outcome on the main display.
+
+The host display and participant devices are different views of one session, not separate applications with separate game state. Party rules may be competitive or cooperative. A party session should be able to produce a deck or playlist that participants can keep after the session.
+
+This describes a product direction, not a commitment to a particular networking architecture, account system, or first-release device matrix.
+
+### 4.6 Shared experience model
+
+The product should be structured as one application with multiple modes. Each mode uses the shared library, song cards, decks, playback capabilities, and—where relevant—sessions and rulesets.
+
+The experience layer should not duplicate song records or create mode-specific copies of playlists. A song selected in a party game should still be the same library song; a playlist created during a game should be saveable as a deck; and a deck should remain usable for ordinary listening without launching a game.
 
 ---
 
@@ -430,6 +455,9 @@ Potential fields:
 - `status`
 - `turn_order`
 - `source_decks`
+- `join_code` (optional)
+- `participant_roles` (optional)
+- `host_display_configuration` (optional)
 - `ruleset_id`
 - `created_at`
 - `ended_at`
@@ -648,14 +676,15 @@ The game is secondary to the music collection. Development should reflect that.
 - Add a song to multiple decks.
 - Initial scoring and compatibility mechanics that operate on song cards and deck/session choices; these should be small and testable rather than deferred entirely to a later phase.
 
-### Phase 2 — Listening sessions
+### Phase 2 — Listening and hosted sessions
 
 - Create and join sessions.
-- Participant list.
-- Turn order.
+- Participant list and turn order.
 - Add songs to a shared queue.
 - Session history.
 - Save a completed session as a deck.
+- Explore a host-display and participant-device layout.
+- Support a simple room-code or QR-code joining flow if the chosen architecture permits it.
 
 ### Phase 3 — Expanded music integrations
 
@@ -664,12 +693,13 @@ The game is secondary to the music collection. Development should reflect that.
 - Export decks to supported playlist services.
 - Improve metadata enrichment and source reconciliation.
 
-### Phase 4 — Expanded game mechanics
+### Phase 4 — Expanded game and party experiences
 
 - Additional game modes and rulesets.
 - More detailed compatibility evaluation.
 - Expanded scoring rules and player feedback.
 - Hybrid listening and game sessions.
+- More complete Jackbox-style hosted party experiences, with a main display and participant-device interactions.
 
 This ordering is provisional. The main objective is to establish the underlying song, deck, and session model before building more elaborate game mechanics.
 
@@ -976,8 +1006,9 @@ Follow the project's applicable tool-use restrictions and approval boundaries wh
 The following questions remain unresolved and should be addressed when they materially affect the next design or implementation stage. The product name, desktop-first target, optional app-account model, multi-route playback direction, and per-deck visibility options have been decided at the product-design level; implementation details and provider-specific capabilities still require verification.
 
 1. **Metadata sources:** Which sources can provide usable song metadata and BPM under acceptable licensing and API terms?
-2. **Session hosting:** Should sessions require a host, or should participants share control equally?
-3. **Game rules:** Which initial game rules would be worth testing after the collection and listening experience exists?
+2. **Session hosting:** Which session types require a host, and which should allow participants to share control equally?
+3. **Party participation:** Should party sessions allow guest participation without creating an account, and which participant devices should be supported initially?
+4. **Game rules:** Which initial game rules would be worth testing alongside the collection and listening experience?
 
 These are design questions, not commitments to implement every possible option.
 
@@ -1004,8 +1035,10 @@ The initial product foundation should be considered successful when:
 - A song can belong to multiple decks without being duplicated.
 - A user can reorder songs within a deck.
 - A deck can be used independently of any game mode.
-- The underlying data model can support a shared session.
+- The underlying data model can support shared sessions and multiple session modes.
 - The design separates reusable collections from temporary session activity.
+- The same library, cards, and decks can support listening, playlist creation, games, and hosted party experiences without duplicating song records.
+- A hosted party experience can present a main display and separate participant-device interactions from one shared session state.
 - The design leaves room for optional game rules without requiring them.
 
 These criteria describe the initial foundation, not a completed application.
