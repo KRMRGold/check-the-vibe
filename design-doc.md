@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe
 type: project-design
-version: 0.5.0
+version: 0.6.0
 status: design-refinement
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
@@ -560,7 +560,57 @@ A ruleset should operate on songs and session events without owning or duplicati
 
 ---
 
-## 7. External Music Services
+## 7. Technology Stack
+
+The initial application is a **desktop-first, local-first Electron application**. The stack should stay deliberately lightweight: standard web technologies for the interface, Electron for desktop capabilities, and JSON files as the initial source of truth.
+
+### 7.1 Selected technologies
+
+| Area | Choice | Purpose |
+|---|---|---|
+| Desktop runtime | **Electron** | Package and run the application as a full desktop application, with access to desktop capabilities through controlled APIs. |
+| Interface | **HTML, CSS, and plain JavaScript** | Build the renderer without adding a frontend framework. |
+| UI framework | **None initially** | Do not introduce React, Vue, or another UI framework unless a demonstrated need justifies changing this decision. |
+| Local data | **JSON files** | Store the user's library, song records, decks, preferences, and other application state in readable, portable files. JSON is the initial source of truth. |
+| Desktop integration | **Electron main process and a secure preload bridge** | Keep privileged desktop operations out of the renderer and expose only the specific capabilities the interface needs. |
+| Version control | **Git and GitHub** | Track source changes, preserve project history, and host the source repository. |
+
+### 7.2 Application structure and security
+
+Use Electron's process separation:
+
+- **Main process:** Owns application lifecycle, native desktop integration, file access, and other privileged operations.
+- **Renderer process:** Runs the HTML/CSS/JavaScript interface and handles presentation and user interaction.
+- **Preload script:** Exposes a narrow, explicitly defined API between the renderer and main process. Do not expose unrestricted Node.js or filesystem access to the renderer.
+
+Use Electron's security-oriented defaults and guidance:
+- Enable context isolation.
+- Keep Node.js integration disabled in renderer processes.
+- Enable renderer sandboxing where compatible with the chosen Electron configuration.
+- Validate and constrain requests crossing the preload bridge.
+- Keep privileged operations in the main process rather than allowing arbitrary renderer access.
+
+### 7.3 Data and backend direction
+
+The initial design is local-first:
+
+- JSON files are the initial persistence format and source of truth.
+- Do not introduce a database or cloud backend for the initial application foundation.
+- Ordinary library and deck use should not require a Check the Vibe account.
+- External-service authentication is only needed when a specific provider operation requires it.
+- Keep the data model and application boundaries open to a future synchronization or multiplayer service, but do not make that future service a dependency of local collection use.
+
+The eventual storage layout, JSON file boundaries, backup/export behavior, and migration strategy remain implementation decisions. Avoid turning one large JSON document into an unmanageable store if the data naturally separates into multiple files; preserve referential consistency between songs, decks, and sessions.
+
+### 7.4 Build and tooling decisions still open
+
+The exact Electron packaging/build tool, development server or bundling approach, automated test framework, and supported desktop operating systems have not yet been selected. Choose these when implementation needs make the trade-offs concrete rather than adding tooling preemptively.
+
+This section records the intended stack, not evidence that it has been implemented or tested.
+
+---
+
+## 18. External Music Services
 
 ### 7.1 General approach
 
@@ -652,7 +702,7 @@ User-created tags and metadata should remain possible regardless of the provider
 
 ---
 
-## 8. Multiplayer and Session Behavior
+## 18. Multiplayer and Session Behavior
 
 ### 8.1 Turn order
 
@@ -693,7 +743,7 @@ Users should be able to save the resulting deck to their library and continue ed
 
 ---
 
-## 9. Visual and Interaction Priorities
+## 18. Visual and Interaction Priorities
 
 The interface should prioritize the following:
 
@@ -710,7 +760,7 @@ The card system should make music more tangible and browsable, not add friction 
 
 ---
 
-## 10. Initial Scope and Development Priorities
+## 18. Initial Scope and Development Priorities
 
 The game is secondary to the music collection. Development should reflect that.
 
@@ -766,7 +816,7 @@ This ordering is provisional. The main objective is to establish the underlying 
 
 ---
 
-## 11. Out of Scope for the Initial Version
+## 18. Out of Scope for the Initial Version
 
 Unless later adopted, the initial version does not require:
 
@@ -783,7 +833,7 @@ These ideas may be revisited if they become useful, but they should not delay th
 
 ---
 
-## 12. Existing Applications and Prior Art
+## 18. Existing Applications and Prior Art
 
 These examples are references for specific parts of the concept. They are not all direct competitors, and none should be assumed to provide the entire intended system.
 
@@ -922,7 +972,7 @@ The product should compete on the coherence of that combined experience rather t
 
 ---
 
-## 13. Development Workflow
+## 18. Development Workflow
 
 ### 13.1 Adopted workflow
 
@@ -1013,7 +1063,7 @@ Do not treat a designed feature as implemented or an unexecuted test as passed.
 
 ---
 
-## 14. Relevant Meta-Modules
+## 18. Relevant Meta-Modules
 
 The following modules inform the project's collaboration and development process.
 
@@ -1062,7 +1112,7 @@ Follow the project's applicable tool-use restrictions and approval boundaries wh
 
 ---
 
-## 15. Open Decisions
+## 18. Open Decisions
 
 The following questions remain unresolved and should be addressed when they materially affect the next design or implementation stage. The product name, desktop-first target, optional app-account model, multi-route playback direction, and per-deck visibility options have been decided at the product-design level; implementation details and provider-specific capabilities still require verification.
 
@@ -1077,7 +1127,7 @@ These are design questions, not commitments to implement every possible option.
 
 ---
 
-## 16. Initial Acceptance Criteria
+## 18. Initial Acceptance Criteria
 
 The initial product foundation should be considered successful when:
 
@@ -1114,13 +1164,13 @@ These criteria describe the initial foundation, not a completed application.
 
 ---
 
-## 17. Current Project State
+## 18. Current Project State
 
 **State:** S2 — Design refinement
 
 **Status:** Concept / refined design draft
 
-**Design document version:** 0.5.0
+**Design document version:** 0.6.0
 
 **Implemented:** Nothing established by this document.
 
