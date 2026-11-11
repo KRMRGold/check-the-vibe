@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe
 type: project-design
-version: 0.2.0
+version: 0.3.0
 status: design-refinement
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
@@ -15,7 +15,7 @@ workflow_version: 1.6.0
 
 ### 1.1 Core concept
 
-Check the Vibe is a music collection and playlist-building application with an optional social music game built around the same underlying system.
+Check the Vibe is a music-card collection, deck-building, and playlist application with social music-game mechanics built around the same underlying system.
 
 The central idea is that **songs are represented as cards**.
 
@@ -23,13 +23,13 @@ A song card is a visual representation of a song and its information: title, art
 
 Users can organize these song cards into **decks**, which function as playlists. Decks can be personal collections, themed playlists, collaborative collections, or sources for a group session.
 
-The card-game aspect is a natural extension of this system rather than the application's primary purpose.
+The card-game aspect is part of the product's initial design, not a feature to exclude from the first version. Collection and playlist building provide the foundation, while scoring and game mechanics operate on the same cards and decks.
 
 The same song library and decks should support three broad experiences:
 
-1. **Collect and organize:** Browse music, build a personal library, and create playlists/decks.
+1. **Collect and organize:** Import playlists and song lists, build a reusable song library, and create or reorganize decks.
 2. **Listen together:** Take turns adding songs to a shared listening session.
-3. **Play the game:** Add optional rules, compatibility evaluations, challenges, and scoring to the same song-selection experience.
+3. **Play the game:** Use song cards, compatibility evaluations, challenges, and scoring as part of the same collection and playlist experience. Game rules may be optional or session-specific, but scoring is not excluded from the initial product scope.
 
 The application should not force users to play a game to use its music features.
 
@@ -37,9 +37,9 @@ The application should not force users to play a game to use its music features.
 
 **One music collection, multiple ways to interact with it.**
 
-A song should not need to be recreated for every playlist or game. It should have one underlying identity in the user's collection and be referenced by any number of decks and sessions.
+A song should not need to be recreated for every playlist or game. It should have one reusable identity in the user's collection and be referenced by any number of decks and sessions.
 
-The card is a way to browse and interact with a song, not a separate copy of the song.
+The card is a way to browse and interact with a song, not a separate copy of the song. An imported playlist should become a deck while also making its identified songs available as reusable cards in the library. Users can reorganize those cards into new decks without altering the imported deck.
 
 ### 1.3 Product identity
 
@@ -66,9 +66,14 @@ The product is organized around four related concepts.
 
 ### 2.1 Song library
 
-The library is the user's collection of song records.
+The library is the user's collection of reusable song records. Songs may enter it through manual addition, playlist imports, or other supported music-data sources.
+
+An imported playlist contributes its identified songs to the library while also being preserved as its own deck. Importing references and metadata does not require downloading audio files.
 
 Users can:
+- Import playlists from supported services such as YouTube without downloading their audio.
+- Import song lists or other supported collections where source access and terms permit.
+- Enrich imported song records with metadata from available music databases and other permitted sources.
 - Search for songs.
 - Add songs to their collection.
 - Browse and filter their collection.
@@ -104,10 +109,18 @@ The card design should be customizable over time, but the initial implementation
 
 ### 2.3 Decks
 
-A deck is a reusable collection of songs. In ordinary use, a deck is effectively a playlist.
+A deck is a reusable collection of songs. In ordinary use, a deck is effectively a playlist. A deck can be created manually, assembled from library cards, or created by importing an existing playlist.
+
+An imported playlist has two related outcomes:
+
+1. **Imported deck:** Preserve the source playlist as a deck, including its ordering and available source references.
+2. **Reusable library cards:** Add or match the playlist's songs to the user's library so they can be reused in other decks.
+
+The imported deck and the library are not competing destinations. They are two views of the same import: one preserves the source collection, while the other makes its songs available for further organization.
 
 Users can:
 - Create a deck.
+- Import a playlist as a deck.
 - Add and remove songs.
 - Reorder songs.
 - Rename and describe a deck.
@@ -116,7 +129,7 @@ Users can:
 - Share a deck.
 - Export a deck to an external music service where supported.
 
-A song can belong to multiple decks without being duplicated in the library.
+A song can belong to multiple decks without being duplicated in the library. Editing or removing a song's membership in one deck must not silently delete the library card or change its membership in other decks. The imported deck should retain its original order unless the user explicitly edits that deck.
 
 Each deck should have its own visibility setting, supporting:
 - **Private:** visible only to its owner (and authorized collaborators, if collaboration is enabled).
@@ -297,7 +310,7 @@ Potential attributes include:
 
 Some attributes may be imported from external metadata sources, while others may be user-defined.
 
-Metadata should retain its source and confidence where appropriate. For example, an automatically estimated BPM should not be presented as unquestionably accurate.
+Metadata should retain its source and confidence where appropriate. For example, an automatically estimated BPM should not be presented as unquestionably accurate. Imported metadata, calculated estimates, and user-added information should remain distinguishable, and users should be able to correct mistaken matches or values.
 
 ### 5.2 Compatibility
 
@@ -353,7 +366,7 @@ The initial conceptual model should separate song identity, collection membershi
 
 ### 6.1 Song
 
-Represents one song record in the user's library.
+Represents one reusable song record in the user's library. It is independent of any one playlist entry or external video.
 
 Potential fields:
 - `id`
@@ -368,13 +381,14 @@ Potential fields:
 - `tags`
 - `mood`
 - `energy`
-- `external_references`
+- `external_references` (provider identifiers and links)
+- `metadata_sources` (source and provenance for imported or calculated fields)
 - `created_at`
 - `updated_at`
 
 ### 6.2 Deck
 
-Represents a reusable collection of songs.
+Represents a reusable collection of songs. An imported playlist is represented as a deck with source information and preserved entry order.
 
 Potential fields:
 - `id`
@@ -382,6 +396,9 @@ Potential fields:
 - `description`
 - `owner_id`
 - `visibility` (private, link-shareable, or public)
+- `source_provider` (optional)
+- `source_playlist_reference` (optional)
+- `imported_at` (optional)
 - `created_at`
 - `updated_at`
 
@@ -397,8 +414,9 @@ Potential fields:
 - `added_by`
 - `added_at`
 - `notes`
+- `source_item_reference` (optional source playlist-item or video reference)
 
-The same song can have multiple deck entries because it can appear in multiple decks.
+The same song can have multiple deck entries because it can appear in multiple decks. A deck entry may retain the original source item reference so the imported playlist can preserve its source link and distinguish different provider videos or versions that point to a matched song.
 
 ### 6.4 Session
 
@@ -467,12 +485,13 @@ The application should not depend on a single music provider for its entire exis
 
 Separate the following operations:
 
-- **Import:** Bring existing songs or playlists into the application.
+- **Import:** Bring existing playlists and song references into the application, without requiring audio downloads.
+- **Metadata enrichment:** Match song records to permitted music databases and other sources to populate useful attributes.
 - **Export:** Create an external playlist from one of the application's decks.
 - **Playback:** Open or play a song through a supported service.
 - **Matching:** Connect an internal song record to the corresponding track or video on a provider.
 
-A song record should remain useful even if an external provider is unavailable.
+A song record should remain useful even if an external provider is unavailable. Importing a playlist should create a deck and make its matched songs reusable in the library; it should not download or copy the underlying audio.
 
 The library and its song records are provider-independent. External services are integrations that may contribute metadata, matching, playback, import, or export capabilities; no single provider should define the app's underlying collection.
 
@@ -488,13 +507,24 @@ Playback should be represented through a common app-level interface, while ackno
 
 ### 7.3 YouTube
 
-YouTube playlist export is a potential early integration.
+YouTube is a potential early import and export integration.
 
-The YouTube Data API supports creating playlists and adding videos to them with user authorization.
+For import, the intended workflow is to read a user's playlist entries and their available identifiers and metadata through authorized access. The app does not download the audio. Each entry is matched to a song record where possible; the playlist becomes an imported deck, and matched songs become reusable library cards.
+
+For export, the YouTube Data API supports creating playlists and adding videos to them with user authorization.
+
+The basic import process would be:
+
+1. The user selects or provides a YouTube playlist.
+2. Read the playlist's available video references and entry information through the supported API and required authorization.
+3. Match each entry to a song record, using available music metadata sources to enrich the record.
+4. Preserve the imported playlist as a deck, including its order and source-item references.
+5. Add or match the identified songs in the reusable library, avoiding unnecessary duplicate song records.
+6. Let the user review uncertain or ambiguous matches.
 
 The basic export process would be:
 
-1. Match each song to a YouTube video.
+1. Match each song in the deck to a YouTube video.
 2. Let the user review uncertain matches.
 3. Create a playlist in the user's account.
 4. Add the selected videos in deck order.
@@ -601,8 +631,13 @@ The card system should make music more tangible and browsable, not add friction 
 
 The game is secondary to the music collection. Development should reflect that.
 
-### Phase 1 — Music collection foundation
+### Phase 1 — Music cards, imports, decks, and initial game foundation
 
+- Import supported playlists, initially investigating YouTube.
+- Convert an imported playlist into a deck while adding its matched songs as reusable library cards.
+- Preserve imported playlist ordering and source references.
+- Enrich song records using available, permitted metadata sources.
+- Review and correct uncertain song matches.
 - Song library.
 - Song records and metadata.
 - Song card presentation.
@@ -611,6 +646,7 @@ The game is secondary to the music collection. Development should reflect that.
 - Search, sorting, and filtering.
 - Create, edit, and reorder decks.
 - Add a song to multiple decks.
+- Initial scoring and compatibility mechanics that operate on song cards and deck/session choices; these should be small and testable rather than deferred entirely to a later phase.
 
 ### Phase 2 — Listening sessions
 
@@ -621,20 +657,18 @@ The game is secondary to the music collection. Development should reflect that.
 - Session history.
 - Save a completed session as a deck.
 
-### Phase 3 — Music integrations
+### Phase 3 — Expanded music integrations
 
-- Import song references.
-- Match songs to external providers.
+- Additional playlist and song-list import sources.
+- Additional provider matching.
 - Export decks to supported playlist services.
-- Review and resolve uncertain matches.
+- Improve metadata enrichment and source reconciliation.
 
-### Phase 4 — Game mechanics
+### Phase 4 — Expanded game mechanics
 
-- Optional game mode.
-- Compatibility evaluation.
-- Scoring rules.
-- Player feedback.
-- Multiple rulesets.
+- Additional game modes and rulesets.
+- More detailed compatibility evaluation.
+- Expanded scoring rules and player feedback.
 - Hybrid listening and game sessions.
 
 This ordering is provisional. The main objective is to establish the underlying song, deck, and session model before building more elaborate game mechanics.
@@ -956,6 +990,11 @@ The initial product foundation should be considered successful when:
 - The app's initial target is desktop.
 - Ordinary collection and playlist use does not require a Check the Vibe account.
 - The app's music records are not dependent on a single external provider.
+- A supported playlist can be imported without downloading its audio.
+- An imported playlist is preserved as a deck with its source ordering.
+- Songs identified during import become reusable library cards.
+- A song card can be reused in newly created decks without changing the imported deck.
+- Metadata can be enriched from available sources while retaining provenance and uncertainty.
 - Playback architecture can accommodate external providers, local files, and supported embedded players.
 - Decks support private, link-shareable, and public visibility settings.
 - A user can create and maintain a song library.
@@ -979,7 +1018,7 @@ These criteria describe the initial foundation, not a completed application.
 
 **Status:** Concept / refined design draft
 
-**Design document version:** 0.2.0
+**Design document version:** 0.3.0
 
 **Implemented:** Nothing established by this document.
 
@@ -989,8 +1028,8 @@ These criteria describe the initial foundation, not a completed application.
 
 **Immediate priorities:**
 1. Identify metadata sources and verify their licensing, permitted uses, and available fields.
-2. Decide how session hosting and participant control should work.
-3. Select a small initial scope for the first implementation.
-4. Define observable acceptance checks for the collection and deck foundation.
+2. Define the first playlist import flow, including how imported decks and reusable library cards are created and matched.
+3. Decide how session hosting and participant control should work.
+4. Define a small initial scoring/compatibility mechanic and observable acceptance checks for the collection, deck, and game foundation.
 
 The project should remain flexible during exploration. The design is a reference for development, not a requirement to implement every idea in this document.
