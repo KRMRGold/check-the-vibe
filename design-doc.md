@@ -1051,7 +1051,7 @@ These criteria describe the initial foundation, not a completed application.
 
 **Status:** Concept / refined design draft
 
-**Design document version:** 0.3.0
+**Design document version:** 0.4.0
 
 **Implemented:** Nothing established by this document.
 
