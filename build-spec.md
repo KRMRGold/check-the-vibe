@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe Build Spec
 type: build-spec
-version: 0.1.0
+version: 0.2.0
 status: ready-to-implement (S3)
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
@@ -104,7 +104,7 @@ Allowed dependencies: `electron`, `better-sqlite3`, `zod`, `@electron-forge/*`, 
 
 ```
 check-the-vibe/
-├── design-doc.md   check-the-vibe-build-spec.md   README.md
+├── design-doc.md   build-spec.md   README.md
 ├── docs/ decisions.md  MAINTENANCE.md  TEST_RECORD.md  MILESTONE.md   # last created at S11
 ├── package.json  forge.config.js
 ├── src/
@@ -253,6 +253,7 @@ CREATE TABLE song_links (                              -- a song can have severa
   created_at TEXT NOT NULL,
   UNIQUE (provider, external_id, song_id)
 );
+CREATE UNIQUE INDEX song_links_one_primary ON song_links(song_id, provider) WHERE is_primary = 1;
 
 CREATE TABLE provider_records (                        -- raw provider payloads, cache, and expiry (4.2)
   id TEXT PRIMARY KEY,
@@ -365,7 +366,7 @@ Map YouTube player errors to user-facing states: video not found or private (100
 1. `contextIsolation: true`, `sandbox: true`, `nodeIntegration: false`. The preload exposes only named methods on `window.ctv`. No generic `invoke(channel)` passthrough.
 2. Every IPC handler validates its payload with `zod` and returns `{ ok: true, data }` or `{ ok: false, error: { code, message } }`.
 3. `setWindowOpenHandler` denies by default and allows `shell.openExternal` only for `https://www.youtube.com/` and `https://youtu.be/` URLs. `will-navigate` is blocked for anything but the content-server origin.
-4. **Secrets:** API keys and OAuth tokens are encrypted with Electron `safeStorage` into `userData/secrets.json`. The renderer can **set** a secret and ask whether one **exists**, but can never read one. Secrets never appear in logs, the database, fixtures or error messages (redact on the way out).
+4. **Secrets:** API keys and OAuth tokens are encrypted with Electron `safeStorage` into `userData/secrets.json`, using its asynchronous API and checking encryption availability before storing anything. If secure storage is unavailable, do not silently fall back to plaintext; explain the limitation and leave the secret unset. The renderer can **set** a secret and ask whether one **exists**, but can never read one. Secrets never appear in logs, the database, fixtures or error messages (redact on the way out).
 5. Escape all external text in the UI (`textContent`, never `innerHTML`).
 6. **Quota:** a client-side counter (`quota_usage`) records estimated units for each YouTube call (list calls 1, search 100; write cost to be confirmed during M10, historically 50). Warn at 80% of the daily limit and refuse non-essential calls at 100%. Unit costs are config, not constants.
 7. **Data location:** `app.getPath('userData')` holds `ctv.db`, `secrets.json`, `backups/`. Nothing is written to the install directory.
@@ -457,7 +458,7 @@ When a card is played, the player plays a clip (default 30 seconds, from the vid
 Each lists what to build and the tests that must pass. "Human" marks a check the builder cannot run.
 
 **M0: Skeleton and secure shell.** Electron app with the section 9 security settings, the loopback content server, preload bridge with one `ping`, SQLite connection, migration runner with `0001_init.sql` (all of section 6), `CTV_PROVIDER_MODE`, Node test scripts, Playwright configured for Electron E2E, Electron Forge configured for an unpacked smoke build, and the initial `docs/MAINTENANCE.md`, `docs/TEST_RECORD.md` and `docs/decisions.md`. Create these three docs now with current state and explicit NOT RUN entries; never invent test results.
-- Tests: all tables exist; foreign keys enforced; migrations apply once and are idempotent; a SQLite-aware pre-migration backup is written and can be restored; the renderer cannot access `require` or `process`; an IPC call with an invalid payload returns `{ok:false}`; Playwright can launch and close the app; an unpacked Forge build can be produced.
+- Tests: all tables and indexes exist; foreign keys enforced; migrations apply once and are idempotent; a SQLite-aware pre-migration backup is written and can be restored; the renderer cannot access `require` or `process`; an IPC call with an invalid payload returns `{ok:false}`; Playwright can launch and close the app; an unpacked Forge build can be produced.
 
 **M1: YouTube embed spike (feasibility).** A throwaway screen that loads the IFrame API and plays one known embeddable video by ID, with the section 8.1 hosting. Test in development and then in the unpacked Forge build to ensure packaging does not change origin/player behavior; also test one private video ID and one embedding-disabled video ID.
 - Tests: the player reaches the playing state in dev and in the unpacked Forge build; the error handler maps each known error code to the right message. Record the outcome and final CSP/hosting decision in `docs/decisions.md`. Clean-Windows installer and installed-app playback checks remain M11 human acceptance tests.
@@ -466,13 +467,13 @@ Each lists what to build and the tests that must pass. "Human" marks a check the
 - Tests: each adapter parses its recorded fixture into `Features` and returns `null` on a miss; the chain fills attributes in priority order; one failing provider does not block the others; no secret appears in fixtures. **If no provider can be looked up without Spotify IDs or violates its terms, ship with the chain empty and user-set stats only; do not use a Spotify route.**
 
 **M3: Library and decks (no network).** Manual add/edit songs, user tags, user energy and BPM (with tap tempo), deck CRUD, add a song to multiple decks, reorder, duplicate, list view and card-grid view over the same data, search/sort/filter, `songs_fts`.
-- Tests: a song in two decks is one row; removing it from one deck leaves the other and the library intact; reorder renumbers correctly and survives restart; switching views keeps the same selection and sort; FTS returns results for title, artist and tag; user attribute wins over any provider row.
+- Tests: a song in two decks is one library row; the same song can occur multiple times in one deck as distinct entries; removing one occurrence or removing it from one deck leaves other occurrences, other decks and the library intact; reorder renumbers entries correctly and survives restart; switching views keeps the same selection and sort; FTS returns results for title, artist and tag; user attribute wins over any provider row.
 
 **M4: Identification (MusicBrainz and Cover Art Archive) and pasted lists.** The throttled client, `parseVideo`, scoring, thresholds, duplicate rule, artwork, the review UI, and "paste an Artist – Title list" as an import source.
 - Tests (fixture mode): table-driven parser cases (Topic channel, "Artist - Title", brackets, feat., no separator); scoring thresholds route to matched / needs_review / unmatched; the request queue never exceeds 1/second (fake clock); the same recording from two videos yields one song with two links; a 404 on artwork falls back without error; the User-Agent header is always set.
 
 **M5: YouTube playlist import.** Settings field for the user's API key (stored via `safeStorage`), playlist URL/ID parsing, paging, `videos.list` batching (50 per call) for duration, embeddable and availability, deck creation preserving order and source IDs, unavailable/private/deleted items recorded in the job summary, quota counter, expiry service (4.2).
-- Tests (fixtures): a 120-item playlist imports in order across pages; unavailable items are counted and listed but create no deck entries; re-importing the same playlist offers update/new-deck and does not duplicate songs; the quota counter increments by the configured costs; expired provider payloads are purged and a refresh is attempted when within 5 days of expiry; the API key never appears in logs. **Human:** one real playlist import with the user's key.
+- Tests (fixtures): a 120-item playlist imports in order across pages; repeated occurrences of the same song remain separate deck entries in the original positions; unavailable items are counted and listed but create no deck entries; re-importing the same playlist offers update/new-deck without duplicating song records or collapsing repeated entries; the quota counter increments by the configured costs; expired provider payloads are purged and a refresh is attempted when within 5 days of expiry; the API key never appears in logs. **Human:** one real public-playlist import with the user's key.
 
 **M6: Playback.** Player component, play song / play deck, queue with next/previous, per-entry clip start, unavailable-video handling and "Open in YouTube".
 - Tests: queue advances on `ended`; an unplayable video is skipped and marked; player state events update the UI; the player stays visible and at a valid size. Verify playback in development mode here; packaged/installed playback is verified in M11.
