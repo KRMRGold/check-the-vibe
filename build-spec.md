@@ -84,19 +84,19 @@ Adaptations:
 
 | Area | Decision |
 |---|---|
-| Desktop shell | **Electron**, Windows-first, developed cross-platform. Packaging: **Electron Forge** (M11 only). |
+| Desktop shell | **Electron**, Windows-first, developed cross-platform. Electron Forge is configured early for an unpacked M1 smoke build; the final Windows installer remains M11. |
 | Renderer | **HTML, CSS and plain JavaScript (native ES modules).** No UI framework, no bundler required. |
 | Main process | Node.js (ESM). All privileged work, network calls, SQL and secrets live here. |
 | Storage | **SQLite via `better-sqlite3`**, WAL mode. Plain SQL in a thin repository layer, no ORM. Numbered `.sql` migrations. JSON is the **export/import** format. *(Deviation from design-doc §7.3, see section 14.)* |
 | IDs, time | UUIDv7 text IDs and UTC ISO-8601 timestamps, generated in code only. |
 | Validation | `zod` for every IPC payload and every external API response. |
-| Tests | Node built-in test runner (`node --test`) for main-process and game-engine logic; **Playwright** with its Electron support for E2E (M11). |
+| Tests | Node built-in test runner (`node --test`) for main-process and game-engine logic; **Playwright** with Electron support is installed and configured in M0, then used for game-flow E2E in M9 and final smoke tests in M11. |
 | Providers | `MusicBrainz` (identity), `Cover Art Archive` (artwork), `YouTube Data API v3` (import/export), `YouTube IFrame Player API` (playback), plus a pluggable **audio-feature provider chain** (section 5). **No Spotify, in any form** (API, scrapers or datasets derived from it). |
 | Provider modes | `CTV_PROVIDER_MODE=live` or `fixture`. Tests run in `fixture` mode from recorded JSON in `test/fixtures/` and need no network. |
 | Credentials | **Bring your own:** the user supplies their own Google Cloud API key (and later OAuth client ID) in Settings. The app ships with none. |
 | Game | Local hot-seat only. Pure, deterministic engine (reducer plus seeded RNG) with an event log. No networking in the MVP. |
 
-Allowed dependencies: `electron`, `better-sqlite3`, `zod`, `@electron-forge/*`, `@playwright/test`. Anything else needs a justification.
+Allowed dependencies: `electron`, `better-sqlite3`, `zod`, `@electron-forge/*`, `@playwright/test`. Install/configure test and packaging tools at the earliest milestone that needs them; never defer a test dependency until after the milestone that uses it. Anything else needs a justification.
 
 ---
 
@@ -138,12 +138,12 @@ This is the answer to "where does the data come from". Every stored value record
 
 | Data | Source | How | Notes |
 |---|---|---|---|
-| Playlist order, video IDs, thumbnails, durations, embeddable flag | **YouTube Data API v3** | `playlistItems.list`, `videos.list`, user's own API key | Expiring data, see 4.2. Private playlists and export need OAuth (M10). |
+| Playlist order, video IDs, thumbnails, durations, embeddable flag | **YouTube Data API v3** | `playlistItems.list`, `videos.list`, user's own API key | Expiring data, see 4.2. M5 imports public playlists using the user's API key; private playlist access and export are deferred until OAuth is implemented in M10. |
 | Playback | **YouTube IFrame Player API** | Embedded player, visible, with events and error codes | Not a metadata source. Playback can fail per video. |
 | Song identity: artist, title, length, release year, ISRC, MBID | **MusicBrainz Web Service v2** | Recording search then lookup | Free, no key, needs a meaningful `User-Agent`, about 1 request/second, cache everything. Confirm terms before any commercial use. |
 | Artwork | **Cover Art Archive** by release MBID | `https://coverartarchive.org/release/{mbid}/front-250` | Not every release has art. Fallback: YouTube thumbnail (hotlinked, not stored). Do not assume images are freely redistributable. |
 | Genres | MusicBrainz genres/tags on the recording (top 3 by vote count), plus user tags | Part of the recording lookup | Sparse for obscure songs. User tags always accepted. |
-| BPM, energy, valence, danceability, key | **Audio-feature provider chain** (section 5) | Looked up by ISRC, MBID or artist+title, whichever the provider supports | Machine estimates. Can be wrong. Always labeled. **Provider choice is decided by the M2 spike.** |
+| BPM, energy, valence, danceability, key, mode | **External audio-feature provider chain** (section 5) | Looked up by ISRC, MBID or artist+title, whichever the provider supports | Values are supplied by external catalog/metadata services; the app does not analyze audio files. Machine estimates can be wrong and are always labeled. **Provider choice is decided by the M2 spike.** |
 | Mood tags | User-authored (primary). Optional provider-derived mood where a provider offers it | Card editor | The game must work with moods blank. |
 | Energy rating 1 to 5, tap-tempo BPM | **User** | Card editor | Highest priority over any provider. |
 
@@ -151,7 +151,7 @@ This is the answer to "where does the data come from". Every stored value record
 
 For each attribute, the resolved value is the first available of: **user value, then providers in configured priority order, then unknown.** Unknown is a first-class state: it is shown as "?" and never treated as zero. Provider values are stored next to each other in `attribute_values`, so changing priority never needs a refetch.
 
-Energy and the other 0 to 1 provider values are stored raw. The card shows **energy as 1 to 5** computed as `clamp(ceil(value * 5), 1, 5)`. A user-set energy is stored as the 1 to 5 integer.
+Numeric provider values are stored raw. The card shows **energy as 1 to 5** computed as `clamp(ceil(value * 5), 1, 5)`. A user-set energy is stored as the 1 to 5 integer. Musical key and mode are categorical values (for example, `C♯` and `minor`), not numbers.
 
 ### 4.2 Expiring (YouTube-derived) data
 
@@ -200,7 +200,7 @@ Rules:
 
 ## 6. Data model (SQLite)
 
-All timestamps are UTC ISO-8601 text. Enable `PRAGMA foreign_keys=ON; journal_mode=WAL;` on every connection. Take a copy of the database file before applying any migration (`backups/ctv-<timestamp>-pre-migration.db`).
+All timestamps are UTC ISO-8601 text. Enable `PRAGMA foreign_keys=ON; journal_mode=WAL;` on every connection. Before applying a migration, create a consistent SQLite backup using the `better-sqlite3` backup API (or another SQLite-aware online backup mechanism) at `backups/ctv-<timestamp>-pre-migration.db`. Do not copy only the main database file while WAL is active.
 
 ```sql
 CREATE TABLE schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL);
@@ -230,10 +230,15 @@ CREATE TABLE attribute_values (                        -- one row per source per
   id TEXT PRIMARY KEY,
   song_id TEXT NOT NULL REFERENCES songs(id) ON DELETE CASCADE,
   attribute TEXT NOT NULL CHECK (attribute IN ('bpm','energy','valence','danceability','acousticness','instrumentalness','key','mode')),
-  value_num REAL NOT NULL,
+  value_num REAL,
+  value_text TEXT,
   source TEXT NOT NULL,                                -- 'user' | provider id
   confidence REAL CHECK (confidence BETWEEN 0 AND 1),
   fetched_at TEXT NOT NULL,
+  CHECK (
+    (attribute IN ('key','mode') AND value_text IS NOT NULL AND value_num IS NULL) OR
+    (attribute NOT IN ('key','mode') AND value_num IS NOT NULL AND value_text IS NULL)
+  ),
   UNIQUE (song_id, attribute, source)
 );
 
@@ -262,13 +267,12 @@ CREATE TABLE decks (
   source_provider TEXT, source_playlist_id TEXT, imported_at TEXT,
   created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
-CREATE TABLE deck_entries (                            -- same song may appear in many decks; once per deck
+CREATE TABLE deck_entries (                            -- each playlist occurrence is a distinct entry; songs are reusable
   id TEXT PRIMARY KEY,
   deck_id TEXT NOT NULL REFERENCES decks(id) ON DELETE CASCADE,
   song_id TEXT NOT NULL REFERENCES songs(id),
-  position INTEGER NOT NULL,                           -- renumbered inside a transaction on reorder; no UNIQUE constraint
-  notes TEXT, source_item_id TEXT, source_video_id TEXT, added_at TEXT NOT NULL,
-  UNIQUE (deck_id, song_id)
+  position INTEGER NOT NULL,                           -- ordered occurrence; duplicates are allowed
+  notes TEXT, source_item_id TEXT, source_video_id TEXT, added_at TEXT NOT NULL
 );
 CREATE INDEX deck_entries_pos ON deck_entries(deck_id, position);
 
@@ -383,9 +387,9 @@ card = { songId, energy: 1-5 | null, tags: Set<string> (genres + moods + user ta
 ### 10.2 Setup
 
 - 2 to 6 players, one computer (hot-seat). Each player picks one of their decks.
-- **Deck validity:** `size >= handSize + rounds - 1`, no duplicate songs (guaranteed by the schema), and a warning for cards with no usable attributes ("blank cards score 0 but can be played").
+- **Deck validity:** `size >= handSize + rounds - 1`; repeated songs are valid distinct entries and count toward deck size. Warn for cards with no usable attributes ("blank cards score 0 but can be played").
 - Defaults: `handSize = 5`, `rounds = 6`, `judging = 'automatic'` (or `'host'`).
-- **Opening song:** one random card from the union of all chosen decks (removed from those decks) sets the initial **Crowd Vibe**: `{ energy, tags (up to tagMemory), level = 5 }`.
+- **Opening song:** choose one random song occurrence from a separate shared opening-song pool assembled from the chosen decks. It initializes the **Crowd Vibe**: `{ energy, tags (up to tagMemory), level = 5 }`. It is not drawn from, removed from, or consumed out of any player's deck; all player deck entries remain available for normal draws and plays. The opening selection is a match-only reference and never mutates saved decks.
 - Each player draws `handSize` cards from their shuffled deck. The RNG is seeded, and the seed is stored.
 
 ### 10.3 Round
@@ -406,7 +410,7 @@ Round end:
 
 1. Sum Player Reputation per player. Sum Crowd Vibe level changes and clamp the level to 0 to 10.
 2. **Round winner** is the highest-scoring play (ties go to the earlier seat). If `judging = 'host'`, the host instead picks one play as the **Judge's Pick**: that player gets +3 and the pick is the round winner.
-3. **Retarget the Crowd Vibe** toward the winner: energy moves 1 step toward the winner's energy (or becomes it if the vibe energy is unknown); tags become the winner's tags followed by the previous tags, de-duplicated, capped at `tagMemory = 6`.
+3. **Retarget the Crowd Vibe** toward the winner: energy moves 1 step toward the winner's energy (or becomes it if the vibe energy is unknown); if the winner's energy is unknown, preserve the current vibe energy. Tags become the winner's tags followed by the previous tags, de-duplicated, capped at `tagMemory = 6`.
 
 Match ends after `rounds` rounds. The highest Player Reputation wins; ties are shared. **Crowd Vibe (shared atmosphere) and Player Reputation (individual score) are tracked separately**, as the design doc requires.
 
@@ -452,11 +456,11 @@ When a card is played, the player plays a clip (default 30 seconds, from the vid
 
 Each lists what to build and the tests that must pass. "Human" marks a check the builder cannot run.
 
-**M0: Skeleton and secure shell.** Electron app with the section 9 security settings, the loopback content server, preload bridge with one `ping`, SQLite connection, migration runner with `0001_init.sql` (all of section 6), `CTV_PROVIDER_MODE`, the test scripts, and the docs folder.
-- Tests: all tables exist; foreign keys enforced; migrations apply once and are idempotent; a pre-migration backup is written; the renderer cannot access `require` or `process`; an IPC call with an invalid payload returns `{ok:false}`.
+**M0: Skeleton and secure shell.** Electron app with the section 9 security settings, the loopback content server, preload bridge with one `ping`, SQLite connection, migration runner with `0001_init.sql` (all of section 6), `CTV_PROVIDER_MODE`, Node test scripts, Playwright configured for Electron E2E, Electron Forge configured for an unpacked smoke build, and the initial `docs/MAINTENANCE.md`, `docs/TEST_RECORD.md` and `docs/decisions.md`. Create these three docs now with current state and explicit NOT RUN entries; never invent test results.
+- Tests: all tables exist; foreign keys enforced; migrations apply once and are idempotent; a SQLite-aware pre-migration backup is written and can be restored; the renderer cannot access `require` or `process`; an IPC call with an invalid payload returns `{ok:false}`; Playwright can launch and close the app; an unpacked Forge build can be produced.
 
-**M1: YouTube embed spike (feasibility).** A throwaway screen that loads the IFrame API and plays one known embeddable video by ID, with the section 8.1 hosting. Test the error paths with one private video ID and one embedding-disabled video ID.
-- Tests: the player reaches the playing state in dev from the loopback origin; the error handler maps each known error code to the right message; **Human:** the same video plays in a packaged build on Windows. Outcome and the final CSP/hosting decision go in `docs/decisions.md`. If it cannot be made to work, apply the section 8.1 fallback before continuing.
+**M1: YouTube embed spike (feasibility).** A throwaway screen that loads the IFrame API and plays one known embeddable video by ID, with the section 8.1 hosting. Test in development and then in the unpacked Forge build to ensure packaging does not change origin/player behavior; also test one private video ID and one embedding-disabled video ID.
+- Tests: the player reaches the playing state in dev and in the unpacked Forge build; the error handler maps each known error code to the right message. Record the outcome and final CSP/hosting decision in `docs/decisions.md`. Clean-Windows installer and installed-app playback checks remain M11 human acceptance tests.
 
 **M2: Data-provider spike (feasibility and terms).** For each candidate in section 5, make real calls (or record BLOCKED if there is no network) with 10 well-known tracks, and record in `docs/decisions.md`: lookup keys supported (ISRC, MBID, name), fields returned, hit rate, rate limits, key/pricing, and a link to the terms with a note on whether non-commercial hobby use is allowed. Save recorded responses as fixtures. Choose the default priority order and implement the `Provider` interface plus the working adapters (at least one; none are required to pass for the app to be usable).
 - Tests: each adapter parses its recorded fixture into `Features` and returns `null` on a miss; the chain fills attributes in priority order; one failing provider does not block the others; no secret appears in fixtures. **If no provider can be looked up without Spotify IDs or violates its terms, ship with the chain empty and user-set stats only; do not use a Spotify route.**
@@ -471,7 +475,7 @@ Each lists what to build and the tests that must pass. "Human" marks a check the
 - Tests (fixtures): a 120-item playlist imports in order across pages; unavailable items are counted and listed but create no deck entries; re-importing the same playlist offers update/new-deck and does not duplicate songs; the quota counter increments by the configured costs; expired provider payloads are purged and a refresh is attempted when within 5 days of expiry; the API key never appears in logs. **Human:** one real playlist import with the user's key.
 
 **M6: Playback.** Player component, play song / play deck, queue with next/previous, per-entry clip start, unavailable-video handling and "Open in YouTube".
-- Tests: queue advances on `ended`; an unplayable video is skipped and marked; player state events update the UI; the player stays visible and at a valid size. **Human:** audio check in the packaged build.
+- Tests: queue advances on `ended`; an unplayable video is skipped and marked; player state events update the UI; the player stays visible and at a valid size. Verify playback in development mode here; packaged/installed playback is verified in M11.
 
 **M7: Enrichment and card stats.** Run the feature chain after identification (background, resumable), show per-value provenance on cards ("you", "estimate", "?" with a tooltip naming the source), refresh action, provider settings.
 - Tests: precedence (user over provider over unknown); unknown renders as "?" and is never zero; energy 0 to 1 maps to 1 to 5 correctly at the boundaries (0, 0.2, 0.21, 1); changing provider priority changes resolved values without a refetch; a user edit survives a refresh.
@@ -480,13 +484,13 @@ Each lists what to build and the tests that must pass. "Human" marks a check the
 - Tests: table-driven scoring covering every component and every missing-data combination; round order-independence (the same plays in any seat order give the same scores); determinism (same seed and actions give an identical final state); replay of the event log equals the live final state; the engine never mutates its input (freeze and assert); illegal actions are rejected and not logged; tie handling; the vibe level clamps at 0 and 10; deck validation rejects a deck smaller than `handSize + rounds - 1`.
 
 **M9: Game UI (hot-seat).** Setup (players, decks, judging mode, rounds), table (Crowd Vibe panel, scoreboard, hand, play area, clip playback, round results with component badges, host judging control), end screen, replay from the event log, save-played-as-deck.
-- Tests (E2E in fixture mode): a full 2-player match completes and the winner is correct; closing and reopening mid-match restores the state from the log; host mode requires a Judge's Pick before the round resolves; the saved deck contains the played songs in play order; a card with no playable video still scores.
+- Tests (Playwright E2E in fixture mode; Playwright was installed/configured in M0): a full 2-player match completes and the winner is correct; closing and reopening mid-match restores the state from the log; host mode requires a Judge's Pick before the round resolves; the saved deck contains the played songs in play order; a card with no playable video still scores.
 
 **M10: Export to a YouTube playlist.** OAuth installed-app flow (loopback redirect, PKCE) using the user's own OAuth client ID, minimal scope, refresh token in `safeStorage`, match-review step for songs with no confirmed video, create playlist, add videos in deck order, store the resulting playlist ID, quota handling.
 - Tests (mocked): the PKCE challenge and state are validated; a failed add-item leaves a resumable job and no duplicate playlist; videos are added in deck order; songs without a confirmed video are listed for review and not exported silently; sign-out deletes the token. **Human:** a real export with the user's Google account. Note for the user: an OAuth app left in "Testing" status can have short-lived refresh tokens and a limited test-user list, so verify the current Google rules at this milestone.
 
-**M11: Packaging, backup and E2E.** Electron Forge Windows installer (with auto-unpack for the native SQLite module), JSON export/import of the whole library (songs, tags, attributes, links, decks, entries; secrets excluded), Playwright smoke tests for the main flows.
-- Tests: export then import into an empty database gives an identical library; importing a newer-schema file is rejected clearly; the installer builds; the installed app launches with no network and shows the library; user data lives under `%APPDATA%`, not the install directory. **Human:** run the installer on a clean Windows machine and confirm playback.
+**M11: Final packaging, backup and installed-app verification.** Build the Electron Forge Windows installer (with auto-unpack for the native SQLite module), complete JSON export/import of the whole library (songs, tags, attributes, links, decks, entries; secrets excluded), and run Playwright smoke tests for the main flows against the packaged app where practical.
+- Tests: export then import into an empty database gives an identical library, including repeated deck entries and their order; importing a newer-schema file is rejected clearly; the installer builds; the installed app launches with no network and shows the library; user data lives under `%APPDATA%`, not the install directory. **Human:** run the installer on a clean Windows machine and confirm playback through the packaged YouTube player.
 
 ---
 
@@ -497,7 +501,7 @@ Each lists what to build and the tests that must pass. "Human" marks a check the
 - Local-file playback, Apple Music, iTunes Search, Spotify (never), SoundCloud.
 - Sharing, link or public decks (the `visibility` column exists but only `private` is enforced).
 - Accounts, cloud sync, telemetry, auto-update, code signing.
-- Audio analysis of any kind inside the app.
+- Local audio-file analysis, downloading/caching YouTube audio, and in-app signal processing or feature extraction. External metadata/feature services are allowed when their terms and lookup methods pass M2; the app stores returned values with provenance and does not analyze audio itself.
 - Scoring categories DEEP CUT and any scoring that needs BPM or popularity data.
 - A deck marketplace or card economy.
 
@@ -507,7 +511,7 @@ Each lists what to build and the tests that must pass. "Human" marks a check the
 
 | Item | Resolution |
 |---|---|
-| Storage: JSON files (design §7.1, §7.3) | **SQLite instead.** Many-to-many deck entries, per-value provenance, duplicate detection and thousands of songs make JSON-as-source-of-truth fragile (partial writes, referential integrity). JSON remains the export/import and backup format. Needs the user's approval. |
+| Storage: JSON files (design §7.1, §7.3) | **Approved: SQLite via `better-sqlite3` is the internal source of truth.** JSON is used for portable import/export and user-initiated backup/restore. |
 | Phase 1 scope (design §11) | Split into milestones M3 to M7. Import is not first: a manual library and decks come before network features, and the embed spike comes first. |
 | Metadata sources, §18 priority 1 | Section 4. Audio features are chosen by the M2 spike. |
 | First import flow, §18 priority 2 | Sections 6 and 7 and M4/M5. |
@@ -515,11 +519,11 @@ Each lists what to build and the tests that must pass. "Human" marks a check the
 | Match loop, §18 priority 4 | Section 10. |
 | First judging format, §18 priority 5 | Automatic evaluation, with an optional host Judge's Pick. |
 | Physical play, §18 priority 6 | Deferred. |
-| Scoring data dependence | Scoring uses only tags, energy (1 to 5) and year, and skips anything unknown. BPM is displayed but not scored. |
+| Scoring data dependence | Ruleset v0 scores tags and energy only. Year and duration are retained in card snapshots but are not scoring inputs. Duration remains available for future transition/pacing compatibility work; it is not discarded from the product model. BPM is displayed but not scored. |
 | Account-free use | Kept. The only credentials are the user's own optional Google keys. |
 | Naming | "Pass the Aux" is not used anywhere. |
 
-Still open (decide with evidence, not in advance): which feature provider becomes default (M2); whether the hosting approach in 8.1 survives packaging (M1); the real YouTube write-quota cost and OAuth rules (M10); tuning the section 10 point values after a few real matches (tunables are in the ruleset file).
+Still open (decide with evidence, not in advance): which external feature provider, if any, becomes default (M2); the real YouTube write-quota cost and OAuth rules (M10); tuning the section 10 point values after a few real matches (tunables are in the ruleset file). M1 verifies the hosting approach in development and an unpacked Forge build before later milestones depend on it.
 
 ---
 
