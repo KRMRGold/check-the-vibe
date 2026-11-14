@@ -31,7 +31,7 @@
 
 ## Status
 
-All M0 acceptance checks listed in build-spec.md §12 have evidence recorded. Awaiting explicit user acceptance before tagging M0 or beginning M1.
+All M0 acceptance checks listed in build-spec.md §12 have evidence recorded. ACCEPTED by the user on 2026-11-14. The tested candidate is eligible for the M0 acceptance tag; the tag must point to the tested commit listed above.
 
 ## Rule
 
