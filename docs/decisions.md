@@ -101,3 +101,24 @@ Record exact inputs, matches, returned fields, nulls, duplicate submissions, con
 - FMA dataset repository, metadata schema and CC BY 4.0 note: https://github.com/stellaywong/fma_keys
 - FMAK dataset description (excluded due Spotify URI mappings): https://zenodo.org/records/10719860
 - Wikidata Query Service constraints: https://www.mediawiki.org/wiki/Wikidata_query_service/Implementation
+
+
+## M2 — Playlist-driven local metadata cache and federation
+
+### Accepted architectural direction
+
+- Playlist imports and manually added songs drive metadata enrichment. The app queries configured online providers, then persists the normalized metadata locally for reuse.
+- The local cache grows from songs users actually add; a complete static catalog is not required. Optional static datasets may seed or supplement the cache, but are not mandatory.
+- Metadata records are independent of playlist/deck membership. Removing a song from a deck does not remove the reusable cached record.
+- A future federation layer may exchange eligible provider-sourced metadata records so another installation can reuse an existing lookup rather than repeating it.
+- The intended lookup order for a later installation is local cache → federation when enabled and reachable → original provider fallback. The app must remain functional when federation is unavailable.
+- Federation is not playlist or deck sharing. Do not share playlist membership, listening history, private notes, account data, or user-authored values by default.
+- Preserve original provider provenance, source identifiers, retrieval time, applicable license/attribution, match confidence, and source-specific expiry. The peer is only the delivery mechanism, not the source of the data.
+- Peer-provided records are untrusted input and must be validated before being stored or used. A peer must not be treated as more authoritative than the original source.
+- Do not redistribute records where the original provider's license or terms prohibit it. Federation must not extend source retention rights.
+
+### Explicitly not decided
+
+The user has not yet selected a federation topology or transport. Peer discovery/rendezvous, direct versus relayed connections, trust and integrity design, sharing-consent controls, conflict resolution, and abuse/rate controls remain open and require design before implementation. This direction does not add networking to the MVP game or shared sessions.
+
+This is an architectural decision only. It does not mean federation, a provider adapter, or a dataset importer has been implemented or tested.
