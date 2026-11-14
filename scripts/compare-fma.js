@@ -77,7 +77,7 @@ export function parseFmaTracks(csvText, genreTitles = new Map()) {
   const { headers, dataStart } = buildHeaders(rows);
   const ti = column(headers, ["track_title", "title", "track_name"]);
   const ai = column(headers, ["artist_name", "artist", "track_artist"]);
-  const id = column(headers, ["track_id", "id"]);
+  const id = column(headers, ["track_id", "id", "track"]);
   const gi = column(headers, ["track_genres", "genres"]);
   const tagi = column(headers, ["track_tags", "tags"]);
   if (ti < 0 || ai < 0) throw new Error("Could not identify title/artist columns. Headers: " + headers.join(", "));
