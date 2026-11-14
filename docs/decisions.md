@@ -38,7 +38,7 @@
 - Does the current loopback origin and Referrer-Policy deliver the Referer/client identity needed to avoid error 153?
 - Does the same behavior hold in development and the unpacked Forge package?
 - What exact CSP directives, if any, must change based on observed browser/player failures?
-- The test screen accepts arbitrary video IDs. A verified public/embeddable fixture is set as the initial sample; private and embedding-disabled fixtures still need to be selected and their current classifications verified at test time. Do not treat a video as private or embedding-disabled based only on an unverified list.
+- The test screen accepts arbitrary video IDs. The initial field uses the official IFrame API sample ID `M7lc1UVf-VE`; its current playback and embedding availability must still be verified during the live test. Private and embedding-disabled fixtures still need to be selected and their current classifications verified at test time. Do not treat a video as private or embedding-disabled based only on an unverified list.
 - Error 100 is documented as removed or private; 101 and 150 are documented as embedding disabled. Error 153 means the request lacks an HTTP Referer or equivalent API client identification.
 
 No M1 playback or packaged-build result is claimed yet.
