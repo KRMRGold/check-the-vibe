@@ -271,12 +271,13 @@ export async function inspectMusicBrainz({ archivePath, checksumPath, samplePath
   const member = chooseJsonlMember(members);
   const inspection = await inspectJsonlMember(archivePath, member, sample);
   return {
-    dataset: "MusicBrainz recording JSON dump",
+    dataset: "MusicBrainz standalone recording JSON dump",
     archive: path.basename(archivePath),
     sha256: actualHash,
     archiveMembers: members,
     recordingMember: member,
-    licenseScope: "MusicBrainz JSON dump listing identifies these entity dumps as CC0; this utility reads recording entity data only.",
+    recordingScope: "Standalone recordings only. Recordings associated with releases are stored in the separate release dump.",
+    licenseScope: "The core fields used for matching (id, title, artist-credit, length, isrcs) are CC0. The dump also contains annotations, genres, ratings and tags under CC BY-NC-SA 3.0; this utility does not use those fields.",
     ...inspection
   };
 }
