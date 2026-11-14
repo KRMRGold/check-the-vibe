@@ -122,3 +122,12 @@ Record exact inputs, matches, returned fields, nulls, duplicate submissions, con
 The user has not yet selected a federation topology or transport. Peer discovery/rendezvous, direct versus relayed connections, trust and integrity design, sharing-consent controls, conflict resolution, and abuse/rate controls remain open and require design before implementation. This direction does not add networking to the MVP game or shared sessions.
 
 This is an architectural decision only. It does not mean federation, a provider adapter, or a dataset importer has been implemented or tested.
+
+## M2 — FMA local comparison utility
+
+- Keep the 342 MiB FMA metadata archive and extracted CSVs local under `data/cache/`; do not commit them or upload them to GitHub.
+- Track only the small, user-provided ten-recording sample, a dependency-free comparison script, and its tests.
+- The utility reads `tracks.csv` and `genres.csv` only. It explicitly excludes `echonest.csv`, `features.csv`, and audio files.
+- Match policy: normalized exact title+artist is the only exact match. Title-only matches remain candidates requiring manual review. No fuzzy match is accepted automatically.
+- Generated JSON results live under the git-ignored `results/` directory and can be shared separately.
+- This is research tooling only; it is not an FMA provider adapter and does not change the provisional provider chain.
