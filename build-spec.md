@@ -217,6 +217,40 @@ The user selected a **multi-provider approach** and rejected MeloData. Do not us
 All provider values retain source and provenance. User-entered values always win. Missing data remains unknown. The app must remain usable if optional datasets are absent. No dataset or adapter is selected until the same 10-track test establishes actual coverage, field quality, matching reliability, licensing and practical dataset size.
 
 
+## 5.1 Playlist-driven local metadata cache and federation
+
+### Accepted product direction
+
+Metadata enrichment is driven by songs entering a user's library, especially through playlist import. The app queries the configured online metadata providers, resolves and records the returned values with their original provenance, and persists reusable song metadata locally. The local cache grows from actual library use; users are not required to download a complete multi-gigabyte catalog.
+
+The intended lifecycle is:
+
+1. Import or add a playlist and identify its song records.
+2. Enrich songs from the configured online providers, subject to provider rules, rate limits, and user settings.
+3. Persist normalized metadata and its source provenance in the local database.
+4. Make those cached records reusable by the user's library, decks, and later imports.
+5. Allow eligible cached metadata records to be exchanged through a future federation layer.
+6. When another installation needs a record, check its local cache first, then the federation if enabled and available, and finally the original providers when no usable cached record is found.
+
+The first installation that enriches a song does not need federation to function. Federation is an additional cache-distribution path, not a dependency for playlist import, library use, playback, or the game.
+
+### Data boundaries
+
+- A song's metadata record is reusable independently of any deck or playlist membership. Removing a song from a deck must not delete its cached metadata.
+- Federation is for eligible metadata records, not for sharing a user's playlists, deck membership, listening history, private notes, or account data.
+- Provider-sourced values retain the original provider identity, source identifiers, retrieval time, license/attribution information where applicable, and confidence or match information. A peer is the delivery path, not the source of the metadata.
+- User-authored values and corrections remain local by default and must not silently replace or be published as provider-sourced data.
+- A peer-supplied record is untrusted input: validate its schema and identifiers, preserve provenance, and reject malformed or unverifiable records. A peer response must never be treated as stronger evidence than the original provider record.
+- Existing provider cache expiry and source-specific retention rules still apply. Federation must not extend a provider's permitted retention period or redistribute data whose license or terms do not permit it.
+- The app remains fully useful when offline, when federation is disabled, or when no peers are reachable; only uncached metadata may remain unavailable.
+
+### Scope and unresolved design
+
+This is an accepted architectural direction, not an implemented feature or a commitment to include federation in the desktop MVP. The current M2 provider feasibility work remains necessary. No bulk dataset is required for the cache to grow, and a static dataset import may remain an optional way to seed local records.
+
+Do not assume a particular federation topology or transport yet. Peer discovery/rendezvous, direct versus relayed connections, trust and integrity mechanisms, sharing consent controls, conflict resolution, and abuse/rate controls require a separate design decision before implementation. The first MVP remains local-first and does not add networking to the game or shared sessions.
+
+
 ---
 
 ## 6. Data model (SQLite)
