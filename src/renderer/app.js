@@ -37,6 +37,7 @@ function setControls() {
 
 function onYouTubeIframeAPIReady() {
   apiReady = true;
+  loadButton.disabled = false;
   setStatus("YouTube API ready", "Load a video ID, then press Play explicitly.", "ready");
   addLog("IFrame API ready");
 }
@@ -60,7 +61,16 @@ function createPlayer(videoId) {
     return;
   }
 
+  if (player && playerReady) {
+    player.cueVideoById(videoId);
+    setStatus("Video cued", "Press Play to start playback.", "ready");
+    addLog(`Cued video ${videoId}`);
+    return;
+  }
+  if (player) return;
+
   playerReady = false;
+  loadButton.disabled = true;
   setControls();
   placeholder.hidden = true;
   setStatus("Creating player…", `Video ID: ${videoId}`);
@@ -79,6 +89,7 @@ function createPlayer(videoId) {
     events: {
       onReady: () => {
         playerReady = true;
+        loadButton.disabled = false;
         setControls();
         setStatus("Player ready", "Press Play to start playback. Autoplay is not used.", "ready");
         addLog("Player ready");
@@ -89,6 +100,7 @@ function createPlayer(videoId) {
         addLog(`Player state: ${state} (${event.data})`);
       },
       onError: (event) => {
+        loadButton.disabled = false;
         const message = getYouTubeErrorMessage(event.data);
         setStatus(`YouTube error ${event.data}`, message, "error");
         addLog(`Error ${event.data}: ${message}`);
@@ -100,10 +112,6 @@ function createPlayer(videoId) {
     }
   };
 
-  if (player) {
-    player.destroy();
-    player = undefined;
-  }
   player = new window.YT.Player("player", options);
 }
 
@@ -141,4 +149,5 @@ try {
   addLog("Desktop bridge did not respond");
 }
 
+loadButton.disabled = true;
 loadApi();
