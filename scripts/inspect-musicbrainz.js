@@ -33,6 +33,44 @@ export function describeMalformedJsonLine(line, lineNumber, error) {
   };
 }
 
+export async function* assembleJsonlRecords(physicalLines) {
+  let buffer = "";
+  let inString = false;
+  let escaped = false;
+  let recordStartLine = 0;
+  let physicalLineNumber = 0;
+
+  for await (const physicalLine of physicalLines) {
+    physicalLineNumber += 1;
+    if (!buffer && !physicalLine.trim()) continue;
+    if (!buffer) recordStartLine = physicalLineNumber;
+
+    for (const character of physicalLine) {
+      buffer += character;
+      if (inString) {
+        if (escaped) escaped = false;
+        else if (character === "\\") escaped = true;
+        else if (character === '"') inString = false;
+      } else if (character === '"') {
+        inString = true;
+      }
+    }
+
+    if (inString) {
+      // Preserve literal physical newlines found inside source annotation strings.
+      buffer += "\\n";
+      continue;
+    }
+
+    if (buffer.trim()) yield { line: buffer, lineNumber: recordStartLine };
+    buffer = "";
+    escaped = false;
+    recordStartLine = 0;
+  }
+
+  if (buffer.trim()) yield { line: buffer, lineNumber: recordStartLine };
+}
+
 export function normalizeText(value) {
   return String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ")
@@ -171,22 +209,11 @@ async function inspectJsonlMember(archivePath, member, sample) {
   let firstRecordKeys = [];
   let firstRecordExample = null;
   let firstMalformedLine = null;
-  const malformedFollowingLines = [];
-
-  for await (const line of lines) {
-    if (firstMalformedLine) {
-      malformedFollowingLines.push(line.slice(0, 500));
-      if (malformedFollowingLines.length >= 3) {
-        child.kill();
-        break;
-      }
-      continue;
-    }
-    if (!line.trim()) continue;
+  for await (const { line, lineNumber } of assembleJsonlRecords(lines)) {
     let record;
     try { record = JSON.parse(line); }
     catch (error) {
-      firstMalformedLine = describeMalformedJsonLine(line, recordsRead + 1, error);
+      firstMalformedLine = describeMalformedJsonLine(line, lineNumber, error);
       continue;
     }
     recordsRead += 1;
@@ -210,7 +237,7 @@ async function inspectJsonlMember(archivePath, member, sample) {
   lines.close();
   const exitCode = await exitPromise;
   if (spawnError) throw new Error(`Could not start the system tar command: ${spawnError.message}`);
-  if (firstMalformedLine) throw new Error(`Malformed JSON on recording line ${firstMalformedLine.line} (length ${firstMalformedLine.length}, error position ${firstMalformedLine.errorPosition}): ${firstMalformedLine.message}. Excerpt: ${JSON.stringify(firstMalformedLine.excerpt)}; ending: ${JSON.stringify(firstMalformedLine.ending)}; following physical lines: ${JSON.stringify(malformedFollowingLines)}`);
+  if (firstMalformedLine) throw new Error(`Malformed JSON on recording line ${firstMalformedLine.line} (length ${firstMalformedLine.length}, error position ${firstMalformedLine.errorPosition}): ${firstMalformedLine.message}. Excerpt: ${JSON.stringify(firstMalformedLine.excerpt)}; ending: ${JSON.stringify(firstMalformedLine.ending)}`);
   if (exitCode !== 0) throw new Error(`tar could not extract ${member} (exit ${exitCode}): ${stderr.trim()}`);
   if (recordsRead === 0) throw new Error("The recording JSONL member contained no records.");
 
