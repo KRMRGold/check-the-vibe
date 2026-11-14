@@ -4,22 +4,35 @@
 
 - Milestone: M0
 - App version: 0.0.1
-- Commit: identify this candidate by the current Git HEAD
-- Environment reported before implementation: Windows, Node.js 24.15.0, npm 11.13.0, Git 2.49.0.windows.1
+- Tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
+- Environment: Windows x64, Node.js 24.15.0, npm 11.13.0, Git 2.49.0.windows.1
+- Test execution: 2026-11-14 (user-reported local results)
 
 ## Results
 
 | Check | Status | Command / method | Evidence |
 |---|---|---|---|
-| Required tables and indexes exist | NOT RUN | npm run test:unit | Tests configured; not yet executed |
-| Foreign keys enforced | NOT RUN | npm run test:unit | Tests configured; not yet executed |
-| Migrations apply once and are idempotent | NOT RUN | npm run test:unit | Tests configured; not yet executed |
-| SQLite-aware pre-migration backup restores | NOT RUN | npm run test:unit | Tests configured; not yet executed |
-| Renderer cannot access require or process | NOT RUN | npm run test:e2e | Playwright test configured; not yet executed |
-| Invalid IPC payload returns ok:false | NOT RUN | npm run test:e2e | Playwright test configured; not yet executed |
-| Playwright launches and closes Electron | NOT RUN | npm run test:e2e | Playwright test configured; not yet executed |
-| Unpacked Forge build produced | NOT RUN | npm run package:smoke | Forge configured; package not yet produced |
+| Required tables and indexes exist | PASS | `npm run test:unit` | `schema creates required tables and indexes` passed |
+| Foreign keys enforced | PASS | `npm run test:unit` | `foreign keys are enabled and enforced` passed |
+| Migrations apply once and are idempotent | PASS | `npm run test:unit` | `migrations apply once and are idempotent` passed |
+| SQLite-aware pre-migration backup restores | PASS | `npm run test:unit` | `SQLite-aware pre-migration backup can be restored` passed |
+| Renderer cannot access require or process | PASS | `npm run test:e2e` | E2E assertion returned both globals as `undefined` |
+| Invalid IPC payload returns ok:false | PASS | `npm run test:e2e` | E2E assertion confirmed `INVALID_PAYLOAD` |
+| Playwright launches and closes Electron | PASS | `npm run test:e2e` | 1 test passed; Electron closed in test cleanup |
+| Unpacked Forge build produced | PASS | `npm run package:smoke` | Forge packaged Windows x64 successfully |
+| Packaged application launches | PASS | Manually launched `out/Check the Vibe-win32-x64/Check the Vibe.exe` | User confirmed the packaged application launches |
+
+## Command summaries
+
+- `npm run test:unit`: 4 tests, 4 passed, 0 failed.
+- `npm run test:e2e`: 1 test passed.
+- `npm run package:smoke`: packaging completed successfully for x64 on Windows.
+- Packaged executable: launched successfully, confirmed by user.
+
+## Status
+
+All M0 acceptance checks listed in build-spec.md §12 have evidence recorded. Awaiting explicit user acceptance before tagging M0 or beginning M1.
 
 ## Rule
 
-Do not change a status to PASS without the exact command output or other direct evidence for this commit. Record failures and environment blockers honestly.
+Only record PASS when supported by exact command output or direct user-confirmed evidence. Record failures and environment blockers honestly.
