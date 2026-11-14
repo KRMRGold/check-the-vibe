@@ -1,7 +1,7 @@
 ---
 name: Check the Vibe Build Spec
 type: build-spec
-version: 0.2.0
+version: 0.3.0
 status: ready-to-implement (S3)
 workflow: Development State Machine Workflow
 workflow_version: 1.6.0
