@@ -9,6 +9,15 @@ import { pathToFileURL } from "node:url";
 
 const execFileAsync = promisify(execFile);
 
+export function buildTarArgs(operation, archivePath, member) {
+  if (operation === "list") return ["--force-local", "-tf", archivePath];
+  if (operation === "extract") {
+    if (!member) throw new Error("A member name is required to extract an archive entry.");
+    return ["--force-local", "-xOf", archivePath, member];
+  }
+  throw new Error(`Unsupported tar operation: ${operation}`);
+}
+
 export function normalizeText(value) {
   return String(value ?? "").normalize("NFKD").replace(/[\u0300-\u036f]/g, "")
     .toLowerCase().replace(/&/g, " and ").replace(/[^a-z0-9]+/g, " ")
@@ -50,7 +59,7 @@ export async function sha256File(filePath) {
 
 async function listArchiveMembers(archivePath) {
   try {
-    const { stdout } = await execFileAsync("tar", ["-tf", archivePath], {
+    const { stdout } = await execFileAsync("tar", buildTarArgs("list", archivePath), {
       encoding: "utf8", windowsHide: true, maxBuffer: 4 * 1024 * 1024
     });
     return stdout.split(/\r?\n/).map((name) => name.trim()).filter(Boolean);
@@ -131,7 +140,7 @@ function makeComparison(sample) {
 }
 
 async function inspectJsonlMember(archivePath, member, sample) {
-  const child = spawn("tar", ["-xOf", archivePath, member], { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
+  const child = spawn("tar", buildTarArgs("extract", archivePath, member), { windowsHide: true, stdio: ["ignore", "pipe", "pipe"] });
   let stderr = "";
   let spawnError = null;
   child.stderr.setEncoding("utf8");
