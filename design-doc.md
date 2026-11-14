@@ -704,25 +704,25 @@ It is a potential integration to investigate separately. Its current terms and c
 
 The initial metadata approach should use a provider-independent song record, with external catalogs contributing information rather than defining the identity of a song.
 
-#### Primary metadata source: MusicBrainz
+#### Catalog identity candidate: MusicBrainz static data
 
-Use the **MusicBrainz API (Web Service v2)** as the initial structured music-metadata source to investigate and integrate.
+MusicBrainz remains a strong candidate for recording, artist-credit, release, release-group, ISRC and relationship data. Prefer recording-level identity where possible and retain MusicBrainz IDs and ISRCs when available.
 
-It supports search and lookup for entities including recordings, releases, release groups, and artists. It can provide useful identifiers and relationships for distinguishing recordings, releases, performers, and alternate versions. Prefer recording-level matches when identifying an individual song, and retain MusicBrainz IDs and ISRCs when available.
+The live MusicBrainz Web Service is **not an approved metadata-provider route under the current project constraints**, because it enforces a one-request-per-second limit per source IP. Do not make live MusicBrainz API calls for this project unless the user explicitly revises the no-quota constraint.
 
-MusicBrainz does not require an API key for ordinary lookups, but requests must include a meaningful application User-Agent. Its published rate limit is approximately one request per second per source IP, so requests should be queued, throttled, and cached appropriately. The service is free for non-commercial use; confirm the applicable terms before any commercial use or monetized deployment.
+Static MusicBrainz data is available instead. The core catalog data is CC0 and is updated twice weekly. The PostgreSQL core dump is approximately 7 GB compressed in the inspected November 2026 listing and is designed for PostgreSQL. Per-entity JSONL dumps are also available; some entity files are several GB. This is a candidate for local identity lookup, but a bounded import/index strategy must be demonstrated before adopting it.
+
+Important license boundary: MusicBrainz tags, genres, ratings and annotations are supplementary data licensed CC BY-NC-SA 3.0, not CC0. Do not treat these fields as unrestricted or include them in the default local/federated metadata chain without an explicit license decision. The static core identity data and supplementary community annotations must remain separate.
 
 #### Artwork: Cover Art Archive
 
 Use the **Cover Art Archive** alongside MusicBrainz when release artwork is available. Artwork is associated with MusicBrainz release IDs, so it is not guaranteed for every recording or release. Preserve source attribution and follow the archive's image and data-use guidance. Do not assume every image is available for unrestricted redistribution.
 
-#### Secondary catalog: Apple iTunes Search API
+#### Excluded metadata API: Apple iTunes Search API
 
-The **iTunes Search API** is a possible supplementary lookup source for track and album matching and additional catalog fields. It returns catalog search results in JSON and supports ID-based lookup.
+The iTunes Search API can return track and album matches, artwork URLs and catalog fields, but Apple's documentation states an approximate limit of 20 calls per minute (subject to change). It is therefore excluded from the current metadata-provider shortlist under the no-quota constraint. Its promotional artwork and preview assets also have store-promotion/display restrictions.
 
-Treat it as an optional enrichment/matching source, not the canonical identity system. Apple's terms limit promotional content such as artwork and audio previews to promotion of store content; preview audio and other promotional assets have additional display requirements. Do not use iTunes previews as a general playback source or assume its artwork can be reused freely in song cards.
-
-Apple Music's separate MusicKit / Apple Music API may later be evaluated for authorized catalog access, playback, and playlist operations; that is distinct from the iTunes Search API.
+Apple Music's separate MusicKit / Apple Music API is a distinct product and is not implicitly approved by this exclusion; any future evaluation must account for its access, quota, licensing and playback terms.
 
 #### Attributes that need another source or user input
 
@@ -737,15 +737,17 @@ Treat these as separate data classes:
 
 Every imported or estimated value should retain its source and, where useful, confidence and retrieval time. Conflicting catalog results should be presented as candidate matches for user review rather than silently merged.
 
-#### Initial integration priority
+#### M2 provider research order (not an implementation commitment)
 
-1. MusicBrainz API for song/recording identification and core metadata.
-2. Cover Art Archive for available release artwork.
-3. YouTube Data API v3 for video discovery and playlist import/export.
-4. YouTube IFrame Player API for embedded playback.
-5. iTunes Search API as an optional secondary matching/enrichment source.
+1. **MusicBrainz static core data** for recording identity, artist credits, releases and ISRCs, if a practical bounded local index can be established.
+2. **AcousticBrainz static data** for precomputed BPM, key/scale, rhythm and high-level descriptors, joined by recording MBID. It is frozen at 2022-07-06 and is not live audio analysis by this app.
+3. **FMA metadata** for supplementary genres and tags. The first local 10-track comparison found 0 exact matches, 0 title-only candidates and 10 no matches; a positive-control test remains necessary.
+4. **MTG-Jamendo metadata** as a conditional non-commercial research candidate for genre, instrument and mood/theme tags. Its CC BY-NC-SA 4.0 license and non-commercial research/academic restriction must be accepted before use.
+5. **Cover Art Archive** only as a separate artwork source if artwork is needed and reuse/attribution requirements are verified.
 
-The exact provider mix may change after implementation testing and a review of licensing, terms, quota limits, and the intended public distribution model.
+No provider has been selected and no adapter or dataset importer has been implemented. Metadata providers must not use paid or quota-limited services, Spotify or Spotify-derived data, or local audio analysis. Attribute-specific sources may be combined, but each imported value must retain its own provenance, license, confidence and source identifier.
+
+Playlist import, video discovery and playback integrations are separate from this metadata-provider comparison and retain their own provider-specific policy requirements.
 
 ### 8.7 API and policy references
 
