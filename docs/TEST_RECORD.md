@@ -12,8 +12,8 @@
 | Check | Status | Command / method | Evidence |
 |---|---|---|---|
 | YouTube error-code mapping (2, 5, 100, 101, 150, 153) | NOT RUN | `npm run test:unit` | Test added; user has not run it against this candidate |
-| YouTube API script loads in development | NOT RUN | `npm start` | Requires live network and browser observation |
-| Player reaches PLAYING in development | NOT RUN | Load a verified embeddable ID, then press Play | Requires live YouTube playback |
+| YouTube API script loads in development | PASS | `npm start` | User observed `IFrame API ready` in the event log on M1 candidate commit `9defaf6244e512df28bd79d5fb28a13183a2739c` |
+| Player reaches PLAYING in development | PASS | Load `M7lc1UVf-VE`, then press Play | User reported the video loaded and played; event log showed `UNSTARTED (-1)`, `BUFFERING (3)`, `PLAYING (1)`, then `PAUSED (2)` on candidate commit `9defaf6244e512df28bd79d5fb28a13183a2739c` |
 | Private video behavior | NOT RUN | Load a verified private video ID | Fixture not yet selected; verify its current status |
 | Embedding-disabled video behavior | NOT RUN | Load a verified embedding-disabled video ID | Fixture not yet selected; verify its current status |
 | Unpacked Forge package builds | NOT RUN | `npm run package:smoke` | Must run against the exact candidate commit |
