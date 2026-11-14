@@ -1,8 +1,11 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { Readable } from "node:stream";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import {
-  buildHeaders, compareSample, normalizeText, parseCsv, parseCsvStream, parseFmaTracks
+  buildHeaders, compareSample, normalizeText, parseCsv, parseCsvStream, parseFmaTracks, readFmaTracks
 } from "../../scripts/compare-fma.js";
 
 test("CSV parser handles quoted commas, escaped quotes, and embedded newlines", () => {
@@ -47,6 +50,28 @@ test("FMA rows expose genres and tags", () => {
   assert.equal(tracks[0].fmaTrackId, "10");
   assert.deepEqual(tracks[0].genres, ["Rock"]);
   assert.deepEqual(tracks[0].tags, ["indie", "live"]);
+});
+
+test("streaming FMA reader can inspect a bounded number of real rows", async () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "fma-inspect-"));
+  const file = path.join(directory, "tracks.csv");
+  const csv = [
+    "track,artist,artist,track,track",
+    "id,id,name,title,genres",
+    '1,10,"Artist One","First Song","[]"',
+    '2,20,"Artist Two","Second Song","[]"',
+    '3,30,"Artist Three","Third Song","[]"'
+  ].join("\n");
+  fs.writeFileSync(file, csv, "utf8");
+  try {
+    const records = [];
+    const count = await readFmaTracks(file, new Map(), (record) => records.push(record), 2);
+    assert.equal(count, 2);
+    assert.deepEqual(records.map((record) => record.fmaTrackId), ["1", "2"]);
+    assert.deepEqual(records.map((record) => record.title), ["First Song", "Second Song"]);
+  } finally {
+    fs.rmSync(directory, { recursive: true, force: true });
+  }
 });
 
 test("title-only candidates are not accepted as exact matches", () => {
