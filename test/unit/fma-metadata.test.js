@@ -35,6 +35,21 @@ test("FMA two-row headers are combined into field names", () => {
   ]), { headers: ["track_id", "artist_id", "artist_name"], dataStart: 2 });
 });
 
+test("FMA grouped headers recognize the third-row pandas index name as track ID", () => {
+  const csv = [
+    ",artist,artist,track,track",
+    ",id,name,title,genres",
+    "track_id,,,,",
+    '2,10,"Artist One","First Song","[]"',
+    '3,20,"Artist Two","Second Song","[]"'
+  ].join("\n");
+  const tracks = parseFmaTracks(csv);
+  assert.equal(tracks.length, 2);
+  assert.equal(tracks[0].fmaTrackId, "2");
+  assert.equal(tracks[0].title, "First Song");
+  assert.equal(tracks[0].artist, "Artist One");
+});
+
 test("normalization ignores case, accents, punctuation, and ampersand spelling", () => {
   assert.equal(normalizeText("Beyoncé & Example!"), "beyonce and example");
 });
@@ -56,8 +71,9 @@ test("streaming FMA reader can inspect a bounded number of real rows", async () 
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "fma-inspect-"));
   const file = path.join(directory, "tracks.csv");
   const csv = [
-    "track,artist,artist,track,track",
-    "id,id,name,title,genres",
+    ",artist,artist,track,track",
+    ",id,name,title,genres",
+    "track_id,,,,",
     '1,10,"Artist One","First Song","[]"',
     '2,20,"Artist Two","Second Song","[]"',
     '3,30,"Artist Three","Third Song","[]"'
