@@ -17,7 +17,7 @@ test("JSONL assembler preserves physical newlines inside quoted annotation strin
 
   assert.equal(records.length, 2);
   assert.equal(records[0].lineNumber, 1);
-  assert.equal(JSON.parse(records[0].line).annotation, "first line\n\nsecond line with \\"quoted text\\"");
+  assert.equal(JSON.parse(records[0].line).annotation, 'first line\n\nsecond line with "quoted text"');
   assert.equal(JSON.parse(records[1].line).title, "Next record");
   assert.equal(records[1].lineNumber, 4);
 });
