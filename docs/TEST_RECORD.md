@@ -23,46 +23,66 @@
 
 The user accepted M1 with the two negative-case checks explicitly deferred. They are not recorded as passed. Keep the existing loopback HTTP origin and CSP; revisit if real playback failures demonstrate a need to change them.
 
-## M2 current investigation — revised for non-quota static datasets
+## M2 current investigation — provider capability matrix
 
-- Milestone: M2 — Data-provider spike
-- App version remains 0.1.0; research only, no M2 code candidate has been created.
-- User selected a multi-provider approach and rejected MeloData.
-- No live provider API calls or 10-track coverage tests have been run.
-- **AcousticBrainz static archive: CANDIDATE — NOT RUN.** CC0, indexed by MusicBrainz recording MBID, frozen at 2022-07-06; 29,460,584 submissions across approximately 7.56 million unique recordings. The official API is rate-limited (typically 10 requests per 10 seconds per IP) and is excluded. Static JSON/CSV dumps exist; the 100,000-item low-level JSON sample is listed at 2 GB. A practical local subset/import method and coverage test remain unverified.
-- **FMA metadata: CANDIDATE — NOT RUN.** Static metadata for 106,574 tracks; archive listed at 342 MiB compressed. Metadata license is CC BY 4.0 and attribution is required. Candidate fields include track metadata, genres and tags. Do not use `echonest.csv` because it contains Echo Nest features associated with Spotify. Track matching to MusicBrainz records is not established.
-- **MusicBrainz: EXISTING SOURCE.** Continue using the existing identity and genre/tag integration. Include its tag coverage in the 10-track comparison; do not add a duplicate adapter.
-- **Wikidata: EXCLUDED FROM LIVE TESTING.** P1725 (numerical BPM) and P1558 (qualitative tempo) exist, but the public Query Service has processing-time and throttling limits. A full static dump is not justified; only reconsider if a small relevant static extract is identified.
-- **FMAK: EXCLUDED.** The 5,489-track key/mode dataset includes Spotify URI mappings. Do not use any part of it under the no-Spotify-in-any-form project boundary.
-- **MeloData: REJECTED BY USER.** Do not use or reintroduce.
-- **Last.fm: EXCLUDED.** Requires an API key, has usage controls, and its API terms limit use to non-commercial purposes.
-- **GetSongBPM: EXCLUDED.** Quota-limited API (3,000 requests/hour) and mandatory backlink.
-- **Audiometa: EXCLUDED PENDING PROVENANCE.** Spotify-derived field independence is not established.
-- **ReccoBeats: EXCLUDED** because of Spotify-derived core metadata.
-- **SoundStat / Soundcharts: EXCLUDED** as paid services.
+- Milestone: M2 — Data-provider feasibility research
+- App version: 0.1.0; no M2 implementation candidate exists.
+- User-selected direction: multiple complementary providers, with per-attribute enrichment and local reuse.
+- Constraints: no Spotify or Spotify-derived data; no paid, quota-limited, or otherwise usage-limited provider services; no local audio analysis. Static third-party datasets may be evaluated if licensing and provenance are suitable.
+- No provider is selected as a universal default. No provider adapter, dataset importer, live provider request, or federation code has been implemented.
 
-### M2 verification status
+### Capability research status
 
-| Check | Status | Evidence / blocker |
+| Source | Candidate role | Access, license and constraints | Status |
+|---|---|---|---|
+| MusicBrainz static core / JSON dumps | Recording, artist, release identity, ISRCs and relationships | Core data CC0; supplementary tags/genres/ratings/annotations CC BY-NC-SA 3.0. Full PostgreSQL core dump approximately 7 GB compressed; JSON entity dumps available, some several GB. Live API is limited to one request/second and is excluded under the no-quota rule. | RESEARCHED; NOT DOWNLOADED OR TESTED |
+| AcousticBrainz static archive | Precomputed BPM, key/scale, rhythm, danceability and high-level descriptors; join by recording MBID | CC0; frozen at 2022-07-06. 29,460,584 submissions, about 7.56m unique recordings. 100k-item sample: high-level about 85 MB, low-level about 2 GB. Duplicate submissions need an explicit selection policy. | RESEARCHED; NOT DOWNLOADED OR TESTED |
+| FMA metadata | Supplemental genres and tags | CC BY 4.0; 106,574 tracks; 342 MiB compressed; 2017 dataset. Use tracks.csv and genres.csv only; exclude echonest.csv, features.csv and audio. | LOCAL COMPARISON EXECUTED; 0/10 MATCHES |
+| MTG-Jamendo metadata | Genre, instrument and mood/theme tags | About 55k tracks; metadata files are small. Metadata CC BY-NC-SA 4.0; dataset restricted to non-commercial research/academic use. | CONDITIONAL CANDIDATE; NOT DOWNLOADED OR TESTED |
+| ListenBrainz dumps | Listening events / possible future popularity research | CC0, but hundreds of millions of listens; user listening-history data, not canonical song metadata. | NOT IN METADATA PROVIDER CHAIN |
+| Discogs | Release/edition catalog in principle | Official Terms of Service prohibit downloading/copying and harvesting absent express written consent. | EXCLUDED PENDING EXPRESS PERMISSION |
+
+Other exclusions: MeloData (user-rejected), Last.fm (key/usage controls and non-commercial terms), GetSongBPM (quota/backlink), ReccoBeats (Spotify-derived), Audiometa (Spotify provenance not established), SoundStat/Soundcharts (paid), FMAK annotations (Spotify URI mappings), Apple iTunes Search API (approximately 20 calls/minute), and live MusicBrainz/Wikidata query services under the no-quota constraint.
+
+### FMA comparison execution
+
+- Local archive: downloaded and extracted by the user under `data/cache/fma_metadata/`; ZIP integrity was checked locally.
+- Candidate implementation: streaming, dependency-free Node.js parser/comparison utility.
+- Exact command: `npm run compare:fma -- --data-dir data/cache/fma_metadata`
+- Unit command: `node --test test/unit/fma-metadata.test.js`
+- Environment: user's Windows x64 environment; exact Node/npm versions were not included in this run output.
+- Unit result: **PASS — 6 tests, 0 failures**.
+- Dataset result: **PASS — comparison completed**; 106,575 data rows read; 0 exact single matches; 0 multiple exact matches; 0 title-only candidates; 10 no matches.
+- Runtime note: the streaming implementation completed without the prior Node.js out-of-memory failure.
+- The user supplied the generated `results/fma-comparison.json`. All ten entries have `matchStatus: no_match` and empty match arrays. Original user-entered titles and uncertainty notes are preserved.
+- Interpretation: the strict matcher found no matches for this fixed sample in this FMA snapshot. This is not proof that FMA contains no useful metadata or that the parser is correct for all real archive rows. A positive-control test against a known FMA row remains required.
+- No fuzzy matching was introduced and no uncertain input title was silently corrected.
+
+### Remaining verification
+
+| Check | Status | Evidence / next action |
 |---|---|---|
-| Provider shortlist reviewed against no-paid/no-quota/no-Spotify constraints | PASS | Research and provider terms/docs reviewed; see links below |
-| AcousticBrainz static dataset 10-track coverage | NOT RUN | No practical low-level sample/subset selected or downloaded |
-| FMA metadata 10-track coverage | NOT RUN | Metadata archive not downloaded; no track-match test |
-| MusicBrainz 10-track baseline coverage | NOT RUN | No fixed 10-track sample has been evaluated |
-| Provider field provenance and licensing | PARTIAL | Dataset license/source notes inspected; exact per-field import/attribution design remains to be verified |
-| Adapter parsing, chain order, provider-failure isolation | NOT RUN | No adapter code exists |
-| Secret leakage check | NOT RUN | No provider credentials or code added |
-
-No hit rate is claimed. No provider is selected as a default. Next evidence needed: a fixed 10-recording sample, a practical local dataset subset, exact field-level coverage, match confidence, duplicate handling, and attribution notes.
+| FMA parser unit tests | PASS | 6/6 tests passed on the user's machine |
+| FMA 10-track strict comparison | PASS | 106,575 rows; 0 exact; 0 title-only; 10 no match |
+| FMA positive-control match | NOT RUN | Test a known row from the actual local archive against the matcher |
+| AcousticBrainz MBID coverage | NOT RUN | First establish recording MBIDs, then test sample coverage and duplicate submissions |
+| MusicBrainz static import feasibility | NOT RUN | Evaluate a bounded JSON entity subset or compact index before considering the 7 GB PostgreSQL core dump |
+| MTG-Jamendo metadata comparison | NOT RUN | Requires an explicit decision that the non-commercial ShareAlike license is compatible |
+| Provider chain / adapter behavior | NOT RUN | No provider adapter code exists |
+| Federation | NOT RUN | Design direction only; no network or exchange code exists |
 
 Research sources:
-- AcousticBrainz API limits: https://acousticbrainz.readthedocs.io/api.html
-- AcousticBrainz CC0 archive and statistics: https://acousticbrainz.org/
-- AcousticBrainz static dumps and sample sizes: https://acousticbrainz.org/download
-- FMA dataset metadata and licensing: https://github.com/stellaywong/fma_keys
-- FMAK dataset details (excluded due Spotify URI mappings): https://zenodo.org/records/10719860
-- Wikidata Query Service constraints: https://www.mediawiki.org/wiki/Wikidata_query_service/Implementation
-
+- MusicBrainz dumps and licensing: https://musicbrainz.org/doc/MusicBrainz_Database/Download
+- MusicBrainz JSON dumps: https://musicbrainz.org/doc/Development/JSON_Data_Dumps
+- MetaBrainz dataset details: https://metabrainz.org/datasets/postgres-dumps
+- MusicBrainz API rate limit: https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting
+- AcousticBrainz downloads: https://acousticbrainz.org/download
+- FMA dataset: https://github.com/mdeff/fma
+- FMA metadata rights: https://www.loc.gov/resource/gdcdatasets.2018655052_gdcfma-metadata/
+- MTG-Jamendo dataset: https://github.com/MTG/mtg-jamendo-dataset
+- Discogs Terms of Service: https://support.discogs.com/hc/en-us/articles/360009334333-Terms-of-Service
+- ListenBrainz dumps: https://metabrainz.org/datasets/postgres-dumps
+- Apple iTunes Search API: https://performance-partners.apple.com/search-api
 
 ## M0 accepted evidence
 
@@ -97,15 +117,13 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - No 2 GB dataset has been downloaded. The user's clarification means this size is not inherently prohibitive, but a bulk download is not required by the playlist-driven cache model.
 - No new test is marked PASS. M2's fixed 10-recording provider coverage comparison remains NOT RUN.
 
-### FMA comparison utility scaffold
+### FMA comparison utility — execution record
 
-- Status: IMPLEMENTED; EXECUTION NOT RUN IN THIS environment.
-- Added dependency-free parser/comparison utility and Node built-in unit tests.
-- Intended data inputs: FMA `tracks.csv` and `genres.csv` only.
-- Explicit exclusions: `echonest.csv`, `features.csv`, all audio files, live APIs.
-- Sample: first ten user-provided entries, preserving uncertain titles verbatim.
-- Dataset download, checksum verification, CSV schema against the actual archive, and 10-track coverage: NOT RUN. The previous attempt to download from this execution environment failed due host DNS/network resolution.
-- Required local checks after the user downloads/extracts the archive:
-  - `node --test test/unit/fma-metadata.test.js`
-  - `npm run compare:fma -- --data-dir <folder-containing-tracks.csv-and-genres.csv>`
-- Do not mark dataset coverage as PASS until the output is inspected and the archive's license/attribution file is checked.
+- Status: IMPLEMENTED AND EXECUTED LOCALLY; no provider selected.
+- User downloaded/extracted the official FMA metadata archive locally; ZIP integrity check passed.
+- The utility reads only `tracks.csv` and `genres.csv`; it excludes `echonest.csv`, `features.csv`, audio files and live APIs.
+- User ran `node --test test/unit/fma-metadata.test.js`: 6 passed, 0 failed.
+- User ran `npm run compare:fma -- --data-dir data/cache/fma_metadata`: 106,575 rows read; 0 exact matches; 0 title-only candidates; 10 no matches.
+- The streaming implementation completed without the earlier out-of-memory error.
+- The user supplied the resulting JSON; all ten entries were `no_match`, with empty match arrays. Uncertain input wording remains unchanged.
+- Positive-control validation against a known row from the actual archive remains NOT RUN.
