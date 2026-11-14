@@ -49,59 +49,74 @@
 - User accepted M1 on 2026-11-14 with the private-video and embedding-disabled-video checks explicitly deferred. They remain untested, not passed. Retain the current loopback hosting and CSP based on successful playback in development and the unpacked Forge package.
 
 
-## M2 — Data-provider feasibility investigation
+## M2 — Data-provider capability matrix
 
-### User decision and revised constraints
+### User constraints
 
-The user selected a multi-provider architecture and rejected MeloData. Do not use MeloData. Prefer openly licensed static datasets over live services with quotas, request caps, or usage-limited plans. No live provider API calls, dataset downloads, coverage tests, adapters, or M2 code have been completed.
+- Use multiple complementary providers; no single source is expected to supply every attribute.
+- No Spotify or Spotify-derived data, including indirect identifiers or datasets.
+- No paid, quota-limited, or otherwise usage-limited provider services.
+- No local audio analysis. Precomputed attributes from a third-party dataset may be evaluated as metadata, but the app must not run audio analysis.
+- Prefer static, openly licensed datasets where they provide useful coverage.
+- Keep the app usable when optional datasets are absent.
+- Preserve source provenance, identifiers, retrieval/version information, confidence, license and attribution requirements.
 
-### Current candidate sources
+### Capability matrix
 
-| Source | Potential role | Access / license / constraints | Status |
-|---|---|---|---|
-| **MusicBrainz** | Existing identity and genre/tag baseline | Already part of the app design. Existing API throttling remains in effect. | Existing source; include in coverage comparison |
-| **AcousticBrainz static archive** | BPM, key, mode, rhythm, danceability, high-level mood descriptors | CC0; indexed by MusicBrainz recording MBID; frozen 2022-07-06; 29,460,584 submissions and approximately 7.56 million unique recordings. Static dumps available. Official live API is rate-limited, typically 10 requests per 10 seconds per IP, so do not use its API. The 100,000-item low-level JSON sample is listed at 2 GB. | Candidate only if a manageable local subset/import route is found |
-| **FMA metadata** | Supplemental genres and tags | 106,574 tracks; metadata archive listed at 342 MiB compressed; metadata CC BY 4.0, attribution required. Use metadata/tags/genres only. Exclude `echonest.csv`, which contains Echo Nest features associated with Spotify. Matching to app songs likely requires title+artist. | Candidate; coverage and match reliability untested |
-| **Wikidata** | Possible structured BPM | P1725 and P1558 properties exist, but live Query Service has processing-time and throttling limits; full local dump is not justified. | Excluded from live testing; reconsider only with a small relevant static extract |
-| **FMAK key/mode dataset** | Manual key/mode annotations for 5,489 FMA tracks | Published annotation file includes Spotify URI mappings. | Excluded due no-Spotify-in-any-form rule |
+| Source | Best-fit role / fields | Join strategy | Freshness and scale | License / access constraints | Current assessment |
+|---|---|---|---|---|---|
+| **MusicBrainz static JSON/core dump** | Canonical catalog identity: recording, artist credits, release, release group, ISRCs, dates and relationships | MusicBrainz Recording ID (MBID), release IDs, ISRC where available; manual/candidate matching is still needed for unlinked imports | Full exports twice weekly. PostgreSQL core dump is about 7 GB compressed in the inspected November 2026 index; JSONL entity dumps are available, but some entity files are several GB. | Core data is CC0. Tags, genres, ratings and annotations in JSON dumps are CC BY-NC-SA 3.0; do not treat them as unrestricted. PostgreSQL dumps are designed for PostgreSQL. Commercial use requires registration and financial support; non-commercial personal projects do not require sign-up. | **Strong identity candidate, but not yet tested locally.** Prefer static core data over the rate-limited live API. Do not include supplementary tags/genres unless their license obligations are explicitly accepted. |
+| **AcousticBrainz static archive** | Precomputed BPM, rhythm, danceability, key/scale, dynamics, spectral descriptors and high-level mood/genre model outputs | Recording MBID; duplicates may exist for a recording and must remain distinguishable until a selection policy is tested | Frozen at 2022-07-06: 29,460,584 submissions, approximately 7.56 million unique recordings. Sample dumps contain 100,000 items: high-level sample about 85 MB; low-level sample about 2 GB. Full exports are split into 30 archives. | CC0. No live API calls; use static files only. Data is historical and cannot cover later releases. | **Strong optional feature candidate.** The 2 GB low-level sample fits the user's stated local-cache tolerance. MBID coverage and duplicate handling remain untested. |
+| **Free Music Archive (FMA) metadata** | Supplemental genres, tags, artist/title metadata, track identifiers and play-count fields | FMA track ID; initial cross-catalog match uses normalized exact title + artist, with title-only candidates requiring review | 106,574 tracks; metadata archive 342 MiB compressed. Dataset originates from the 2017 research release. | Metadata is CC BY 4.0; attribution required. Use tracks.csv and genres.csv only. Explicitly exclude echonest.csv (Echo Nest/Spotify-associated) and features.csv/audio. | **Supplementary candidate with measured weak coverage on this sample:** 0 exact matches, 0 title-only candidates, 10 no matches. This does not prove the catalog has no useful records; positive-control validation is still required. |
+| **MTG-Jamendo metadata** | Genre, instrument, mood/theme tags; title, artist, album, duration, release date and track URL | Dataset track ID and normalized title + artist; no guaranteed MBID crosswalk established | Approximately 55,000 tracks. Metadata TSVs are small (single-digit MB files); audio and feature archives are much larger and are not needed for a metadata-only test. Dataset released 2019. | Metadata is CC BY-NC-SA 4.0; dataset is stated to be solely for non-commercial research and academic use. Commercial use requires prior written authorization. ShareAlike and attribution obligations need review before any federation. | **Conditional research candidate only.** Potentially useful for mood/instrument tags, but not an unrestricted default source. Test only if its non-commercial license scope is acceptable for this project. |
+| **ListenBrainz dumps** | Listening events and derived popularity/listening-pattern research, not canonical recording facts | MusicBrainz IDs and submitted listen metadata, where present | Hundreds of millions of listens; full dumps twice monthly and daily incrementals. | CC0, but includes user listening-history data and is very large. | **Not in the metadata provider chain.** Reconsider only for a separately designed, privacy-conscious popularity feature. |
+| **Discogs** | Release/edition catalog and tracklists in principle | Discogs release/master/artist IDs; crosswalk to recording MBIDs is not guaranteed | Public third-party references describe bulk dumps, but this investigation did not establish an authorized, project-safe download path. | Official Terms of Service prohibit downloading/copying or data harvesting absent express written consent. Do not rely on third-party claims that dumps are CC0 to override the official terms. | **Excluded pending explicit permission.** No scraping, harvesting or third-party dump ingestion. |
 
-### Excluded sources
+### Live-service exclusions and prior design reconciliation
 
-- **MeloData:** explicitly rejected by the user.
-- **Last.fm:** API key required; usage controls apply; API terms restrict use to non-commercial purposes.
-- **GetSongBPM:** quota-limited (3,000 requests/hour) and mandatory backlink.
-- **ReccoBeats:** Spotify-derived core track metadata.
-- **Audiometa:** insufficient evidence that consumed fields are independent of Spotify-derived data.
-- **SoundStat / Soundcharts:** paid services.
+- **MusicBrainz Web Service:** the official policy limits clients to one request per second per source IP. This is quota/rate-limited, so it is not an approved provider route under the current project constraints. Its static core dump remains a candidate.
+- **Apple iTunes Search API:** Apple's current documentation states approximately 20 calls per minute (subject to change). Excluded as a quota-limited enrichment source.
+- **Wikidata Query Service:** excluded for live lookup because of processing-time/throttling constraints. A full local dump is not justified; reconsider only if a small, relevant static extract is identified.
+- **MeloData:** rejected by the user; do not use or reintroduce.
+- **Last.fm:** excluded because of API key/usage controls and non-commercial terms.
+- **GetSongBPM:** excluded because of request quota and mandatory backlink.
+- **ReccoBeats:** excluded because of Spotify-derived metadata.
+- **Audiometa:** excluded until field-level provenance independent of Spotify is established.
+- **SoundStat / Soundcharts:** excluded as paid services.
+- **FMAK key/mode annotations:** excluded because the published annotation file includes Spotify URI mappings.
 
-### Provisional field chain
+### Provisional attribute roles (not provider selection)
 
-- Identity: MusicBrainz.
-- Genres/tags: MusicBrainz → FMA metadata (optional local dataset) → user tags.
-- BPM/key/mode/rhythm/danceability: AcousticBrainz static archive (optional local dataset) → user values.
-- Mood descriptors: AcousticBrainz high-level archive where available → user tags.
-- Energy: user-set energy remains primary; do not map an incompatible external metric into the app's 1–5 scale without an explicit validated conversion.
+- **Identity and recording/release relationships:** MusicBrainz static core data, if a manageable local subset/import strategy is established.
+- **Genres and descriptive tags:** FMA metadata as a permissively licensed supplement; MTG-Jamendo only as a conditional non-commercial research dataset. User-authored tags remain authoritative.
+- **BPM, key, rhythm and acoustic descriptors:** AcousticBrainz static data where a recording MBID match exists. These are precomputed third-party attributes, not locally analyzed values.
+- **Mood/theme/instrument labels:** AcousticBrainz high-level outputs and, conditionally, MTG-Jamendo tags. Keep source vocabularies distinct; do not silently map them into the app's own scales.
+- **Energy:** user-authored value remains primary. Do not map an external metric to the app's 1–5 scale without a validated conversion.
+- **Artwork:** Cover Art Archive remains a separate artwork source, not a catalog metadata provider; verify artwork reuse/attribution terms before implementation.
 
-User values always win. Every provider value retains its source. Missing values remain unknown. The app must remain usable with no optional dataset installed.
+### Evidence status and next checks
 
-### Required next evidence
-
-Run a consistent 10-recording comparison using:
-- MusicBrainz as the existing baseline;
-- FMA metadata for genre/tag coverage and title+artist matching reliability;
-- AcousticBrainz static data for MBID-based feature coverage, only if a manageable extract can be obtained without invoking its rate-limited API.
-
-Record exact inputs, matches, returned fields, nulls, duplicate submissions, confidence/quality information, source/license/attribution, and match failures. Do not select a default provider or claim a hit rate before this test.
+- FMA 10-track comparison has now run: 106,575 data rows read; 0 exact matches; 0 title-only candidates; 10 no matches. All six FMA utility unit tests passed. The user's uncertain titles remain unchanged.
+- The FMA matcher still needs a positive control using a known row from the local FMA archive. This verifies that the real archive can produce a match and that the zero result is not a parser or normalization defect.
+- AcousticBrainz high-level sample (about 85 MB) and low-level sample (about 2 GB) are available as separate downloads. No AcousticBrainz data has been downloaded. A sample test must first establish MBIDs for the ten recordings and report coverage plus duplicate submissions.
+- MusicBrainz static core data has not been downloaded or imported. Determine whether a smaller JSONL entity subset or a compact lookup index is practical before considering the full approximately 7 GB PostgreSQL core dump.
+- MTG-Jamendo metadata has not been downloaded. Do not fetch it until the project's non-commercial license compatibility and federation implications are accepted.
+- No provider adapter, live provider request, dataset importer, or federation code has been implemented.
 
 ### Research sources
 
-- AcousticBrainz API docs and rate limits: https://acousticbrainz.readthedocs.io/api.html
-- AcousticBrainz overview, CC0 license and statistics: https://acousticbrainz.org/
-- AcousticBrainz dumps and sample sizes: https://acousticbrainz.org/download
-- FMA dataset repository, metadata schema and CC BY 4.0 note: https://github.com/stellaywong/fma_keys
-- FMAK dataset description (excluded due Spotify URI mappings): https://zenodo.org/records/10719860
-- Wikidata Query Service constraints: https://www.mediawiki.org/wiki/Wikidata_query_service/Implementation
-
+- MusicBrainz static PostgreSQL dumps and per-file licensing: https://musicbrainz.org/doc/MusicBrainz_Database/Download
+- MusicBrainz JSON dumps and field-level licensing: https://musicbrainz.org/doc/Development/JSON_Data_Dumps
+- MetaBrainz dataset formats, update cadence and commercial-use guidance: https://metabrainz.org/datasets/postgres-dumps
+- MusicBrainz API rate limit: https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting
+- AcousticBrainz dumps, fields and sample archives: https://acousticbrainz.org/download
+- AcousticBrainz data overview and CC0 status: https://acousticbrainz.org/
+- FMA dataset and metadata schema: https://github.com/mdeff/fma
+- FMA metadata rights record: https://www.loc.gov/resource/gdcdatasets.2018655052_gdcfma-metadata/
+- MTG-Jamendo dataset and metadata schema/license: https://github.com/MTG/mtg-jamendo-dataset
+- Discogs Terms of Service: https://support.discogs.com/hc/en-us/articles/360009334333-Terms-of-Service
+- ListenBrainz dataset description: https://metabrainz.org/datasets/postgres-dumps
+- Apple iTunes Search API limits: https://performance-partners.apple.com/search-api
 
 ## M2 — Playlist-driven local metadata cache and federation
 
