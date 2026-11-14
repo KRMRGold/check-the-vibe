@@ -214,7 +214,8 @@ async function inspectJsonlMember(archivePath, member, sample) {
     try { record = JSON.parse(line); }
     catch (error) {
       firstMalformedLine = describeMalformedJsonLine(line, lineNumber, error);
-      continue;
+      child.kill();
+      break;
     }
     recordsRead += 1;
     if (recordsRead === 1) {
