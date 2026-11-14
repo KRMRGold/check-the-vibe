@@ -37,7 +37,7 @@ The user accepted M1 with the two negative-case checks explicitly deferred. They
 |---|---|---|---|
 | MusicBrainz JSON recording dump | Identity fields for standalone recordings only | User downloaded and checksum-verified the 34 MB compressed archive. Inspector read 157,994 records: ID/title/artist credit 100%; duration 72.62%; ISRC 5.76%. Official definition: standalone recordings are not linked to a release, so this is not the main catalog. Core matching fields are CC0; supplementary annotations/tags/genres/ratings are CC BY-NC-SA 3.0. | INSPECTED LOCALLY; LIMITED SCOPE |
 | MusicBrainz release JSON dump | Main catalog route for release-associated tracks/recordings | Snapshot index lists release.tar.xz at 22 GB compressed, above the project's approximate 2 GB static-cache comfort range. Not downloaded. | SIZE VERIFIED; NOT DOWNLOADED |
-| MusicBrainz Canonical Data dump | Compact canonical identity/matching candidate across recordings, releases and artists | CC0, zstd CSV, updated twice monthly; MetaBrainz describes it as intended to provide one representative record per mostly equivalent release/recording set and useful for matching. Actual download size, schema and sample coverage remain unverified. | NEW CANDIDATE; NEEDS SIZE/SCHEMA CHECK |
+| MusicBrainz Canonical Data dump | Canonical recording/release identity and artist+title matching | CC0; zstd-compressed CSV archive. Latest listed snapshot at inspection: 2026-11-03; listing rounds archive size to 2G (exact bytes not exposed). MetaBrainz documentation specifies `canonical_musicbrainz_data.csv` columns: id, artist_credit_id, artist_mbids, artist_credit_name, release_mbid, release_name, recording_mbid, recording_name, combined_lookup, score; also recording/release redirect mapping CSVs. Upstream example reports near 23M metadata rows (historical approximate count, not verified for current snapshot). Updated twice monthly. Canonical MBIDs may change between snapshots; canonicalization intentionally collapses versions. | STRONG CANDIDATE; SIZE AT ~2 GB LIMIT; LOCAL SAMPLE TEST PENDING |
 | AcousticBrainz static archive | Precomputed BPM, key/scale, rhythm, danceability and high-level descriptors; join by recording MBID | CC0; frozen at 2022-07-06. 29,460,584 submissions across 30 archives, about 7.56m unique recordings. Duplicate submissions exist; a 100k-item sample is available. Coverage depends on obtaining MBIDs for user tracks. | RESEARCHED; NOT DOWNLOADED OR TESTED |
 | FMA metadata | Supplemental genres and tags | CC BY 4.0; 106,574 tracks; 342 MiB compressed; 2017 dataset. Use tracks.csv and genres.csv only; exclude echonest.csv, features.csv and audio. | LOCAL COMPARISON + POSITIVE CONTROL EXECUTED; 1/1 POSITIVE CONTROL |
 | MTG-Jamendo metadata | Genre, instrument and mood/theme tags | About 55k tracks; metadata files are small. Metadata CC BY-NC-SA 4.0; dataset restricted to non-commercial research/academic use. | CONDITIONAL CANDIDATE; NOT DOWNLOADED OR TESTED |
@@ -71,7 +71,7 @@ Other exclusions: MeloData (user-rejected), Last.fm (key/usage controls and non-
 | FMA positive-control match | PASS | `Kurt Vile — Freeway` from the local archive returned one exact match; 106,574 rows read |
 | AcousticBrainz MBID coverage | NOT RUN | First establish recording MBIDs, then test sample coverage and duplicate submissions |
 | MusicBrainz recording dump inspection | PASS | User verified SHA-256; inspector read 157,994 standalone recordings; 9/9 inspector tests passed. Sample: 1 exact, 1 title-only candidate, 8 no match; sample is not representative. |
-| MusicBrainz full catalog feasibility | NOT RUN | Release JSON archive is 22 GB compressed; evaluate the CC0 canonical CSV dump as a smaller identity candidate (size/schema/coverage not yet verified) |
+| MusicBrainz full catalog feasibility | PARTIALLY VERIFIED | Release JSON archive is 22 GB compressed. Canonical Data archive is listed as 2G (rounded); schema is documented and specifically supports artist/title matching. Need exact archive bytes, inspect archive contents/checksum, then test same sample before selecting it. |
 | MTG-Jamendo metadata comparison | NOT RUN | Requires an explicit decision that the non-commercial ShareAlike license is compatible |
 | Provider chain / adapter behavior | NOT RUN | No provider adapter code exists |
 | Federation | NOT RUN | Design direction only; no network or exchange code exists |
@@ -81,6 +81,9 @@ Research sources:
 - MusicBrainz JSON dumps: https://musicbrainz.org/doc/Development/JSON_Data_Dumps
 - MusicBrainz standalone recording definition: https://musicbrainz.org/doc/Standalone_Recording
 - MetaBrainz canonical data dumps: https://metabrainz.org/datasets/derived-dumps
+- Canonical MusicBrainz schema and field definitions: https://musicbrainz.org/doc/Canonical_MusicBrainz_data
+- Canonical dump archive index: https://data.metabrainz.org/pub/musicbrainz/canonical_data/
+- Canonical dump example (historical ~23M-row note): https://github.com/metabrainz/canonical-data-example
 - MusicBrainz release dump snapshot index: https://data.metabrainz.org/pub/musicbrainz/data/json-dumps/20261111-001001/
 - MetaBrainz dataset details: https://metabrainz.org/datasets/postgres-dumps
 - MusicBrainz API rate limit: https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting
