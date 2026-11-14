@@ -55,27 +55,24 @@ A future federation layer may share eligible provider-sourced metadata records b
 
 Original provider provenance, source identifiers, retrieval time, confidence/match information, applicable license/attribution, and expiry must survive caching and peer transfer. Peer-supplied records are untrusted and require validation. Federation must not redistribute data or extend retention beyond what the original source permits.
 
-This is an architectural direction only. Federation topology, discovery/rendezvous, transport, consent controls, integrity/trust, conflict resolution, and abuse controls remain undecided. No federation code, provider adapter, or dataset importer has been implemented. M2's 10-recording provider comparison remains the next evidence task.
+This is an architectural direction only. Federation topology, discovery/rendezvous, transport, consent controls, integrity/trust, conflict resolution, and abuse controls remain undecided. No federation code, provider adapter, or dataset importer has been implemented. M2's provider comparison is underway. The FMA baseline has run (0/10 matches); positive-control validation and AcousticBrainz coverage remain next.
 
 
-Research direction revised on 2026-11-14. The user chose a multi-provider architecture and rejected MeloData. No provider has been selected, no adapter code exists, and no 10-track coverage test has been completed.
+M2 provider research was revised on 2026-11-14 around a multi-provider, attribute-specific model. No provider is selected as a universal default and no provider adapter exists.
 
-Current direction:
-- MusicBrainz remains the existing identity and genre/tag baseline.
-- AcousticBrainz is a candidate only as an openly licensed **static local dataset**, not its live API. The live API documents request limits (typically 10 requests per 10 seconds per IP). Its CC0 archive is frozen at 2022-07-06 and indexed by recording MBID. The 100,000-item low-level JSON sample is listed at 2 GB, so a practical import/subset strategy must be established before use.
-- FMA metadata is a candidate for supplemental genres/tags. The metadata archive is listed at 342 MiB compressed for 106,574 tracks and is CC BY 4.0. Use only metadata/tags/genres; explicitly exclude `echonest.csv`, which contains Echo Nest features associated with Spotify. Matching to app songs may require title+artist and must be measured for false matches.
-- Wikidata is not a live candidate: its public query service has processing-time and throttling limits. A full local dump is not justified without a smaller relevant extract.
-- FMAK key/mode annotations are excluded because the published annotation file includes Spotify URI mappings, conflicting with the project's no-Spotify boundary.
+Current capability direction:
+- **MusicBrainz static core data:** promising identity/recording/release catalog. Core data is CC0, but tags/genres/ratings/annotations are supplementary CC BY-NC-SA 3.0. The live API is rate-limited and is not an approved route under the current no-quota constraint. The PostgreSQL core dump is about 7 GB compressed; JSON entity dumps are available but some are several GB.
+- **AcousticBrainz static data:** promising optional BPM/key/rhythm/danceability and high-level descriptors, CC0, indexed by recording MBID, but frozen at 2022-07-06. The high-level 100k sample is about 85 MB; the low-level sample is about 2 GB. No AcousticBrainz data has been downloaded.
+- **FMA metadata:** supplemental genres/tags, CC BY 4.0, 106,574 tracks in the 2017 dataset. The local 10-track comparison ran and found 0 exact matches, 0 title-only candidates, and 10 no matches. This is a measured result for this sample, not proof that FMA has no useful coverage. A positive-control match against a known local FMA row is still required.
+- **MTG-Jamendo metadata:** about 55k tracks with genre/instrument/mood-theme tags; metadata files are small, but the metadata is CC BY-NC-SA 4.0 and the dataset is restricted to non-commercial research/academic use. Conditional candidate only; no download or test has been performed.
+- **ListenBrainz:** public CC0 listening-history dumps are huge and describe listen events rather than canonical song facts; not part of the metadata chain.
+- **Discogs:** excluded pending express permission because the official Terms of Service prohibit downloading/copying and harvesting without it.
+- **Apple iTunes Search API, MusicBrainz live API, and Wikidata Query Service:** excluded from provider calls under the current no-quota constraint. Existing design references to these services are superseded for metadata enrichment.
 
-Excluded:
-- MeloData: rejected by user; do not use.
-- Last.fm: free key and usage controls, plus non-commercial terms.
-- GetSongBPM: quota-limited API and mandatory backlink.
-- ReccoBeats: Spotify-derived metadata.
-- Audiometa: field provenance not established as independent of Spotify.
-- SoundStat / Soundcharts: paid services.
+Other exclusions remain: MeloData (user-rejected), Last.fm (key/usage controls and non-commercial terms), GetSongBPM (quota and backlink), ReccoBeats (Spotify-derived), Audiometa (Spotify provenance not established), SoundStat/Soundcharts (paid), and FMAK annotations (Spotify URI mappings).
 
-Next step: establish a manageable, local-only dataset test using the same 10 recordings. Measure MusicBrainz and FMA metadata tag coverage, and AcousticBrainz feature coverage by MBID if a suitably small static extract is available. Record exact matches, missing values, duplicate submissions and data provenance. Until then, the provider chain remains provisional and the app continues to work with user-entered values only.
+No new datasets have been downloaded beyond the user-downloaded FMA metadata archive. No provider adapters, dataset importers, live provider calls, or federation code have been implemented.
+
 
 ## Deferred
 
@@ -91,11 +88,13 @@ M3–M11 remain unstarted. Do not implement later milestone features before M2 i
 - Never copy only the SQLite main file while WAL is active; use the SQLite backup API.
 - A package-lock.json has not yet been committed; reproducible dependency installation remains an operational follow-up.
 
-### FMA local comparison utility scaffold
+### FMA local comparison utility
 
-- Status: IMPLEMENTED AS A LOCAL RESEARCH UTILITY; NOT YET RUN AGAINST THE DATASET.
-- Added `scripts/compare-fma.js`, a dependency-free Node.js utility that reads only `tracks.csv` and `genres.csv`, compares normalized exact title+artist pairs, and reports title-only candidates separately for manual review.
-- Added the fixed first-ten user-provided sample at `data/samples/fma-sample-10.json`. Ambiguous user wording is preserved rather than silently corrected.
-- Dataset files belong under `data/cache/`; that directory is git-ignored. Generated comparison output under `results/` is also git-ignored. Only the small sample, script, tests, and empty directory markers are tracked.
-- The utility does not call APIs, inspect audio, or read `echonest.csv` or `features.csv`. It does not modify the app's provider architecture or select FMA as a provider.
-- Next: download/extract the official archive locally, run `npm run compare:fma -- --data-dir <folder-containing-tracks.csv-and-genres.csv>`, inspect the generated JSON, and record actual match evidence. No dataset has been downloaded by this change.
+- Status: IMPLEMENTED AND EXECUTED LOCALLY; research result recorded, provider not selected.
+- Dataset archive was downloaded and extracted by the user under `data/cache/fma_metadata/`; ZIP integrity was checked locally.
+- Inputs: `tracks.csv` and `genres.csv` only. Excluded: `echonest.csv`, `features.csv`, audio files and live APIs.
+- User ran `node --test test/unit/fma-metadata.test.js`: 6 tests passed, 0 failed.
+- User ran `npm run compare:fma -- --data-dir data/cache/fma_metadata`: 106,575 data rows read; 0 exact matches; 0 title-only candidates; 10 no matches. The streaming implementation completed without the prior out-of-memory failure.
+- Result JSON: local, git-ignored `results/fma-comparison.json`; user supplied its contents for inspection. All ten entries preserve the original input wording and have empty match lists.
+- Interpretation: this proves only that the current strict matcher found no match for these ten inputs in this FMA snapshot. It does not establish that the entire FMA catalog lacks useful metadata. The sample is mostly mainstream and several titles were uncertain or user-provided wording.
+- Next: verify the parser/matcher with a positive control from a known row in the local archive. Do not loosen exact matching or silently correct sample titles before this check.
