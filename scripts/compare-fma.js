@@ -81,11 +81,21 @@ export function buildHeaders(rows) {
   const first = rows[0].map(cleanHeader);
   const second = rows[1]?.map(cleanHeader) ?? [];
   const flat = first.some((v) => ["track_title", "artist_name", "track_id"].includes(v));
-  if (!flat && second.length && first.some((v) => v === "track" || v === "artist")) {
-    return {
-      headers: second.map((v, i) => v ? (first[i] ? first[i] + "_" + v : v) : first[i]),
-      dataStart: 2
-    };
+  if (!flat && second.length && first.some((v) => ["track", "artist", "album"].includes(v))) {
+    const headers = second.map((v, i) => v ? (first[i] ? first[i] + "_" + v : v) : first[i]);
+    // pandas writes the index name as a third header row when exporting a
+    // DataFrame with grouped (MultiIndex) columns. In FMA tracks.csv this is
+    // "track_id" in the otherwise-empty first column; the following rows
+    // contain the actual track IDs in that column.
+    const third = rows[2] ?? [];
+    const indexName = cleanHeader(third[0]);
+    const isIndexNameRow = indexName === "track_id" &&
+      third.slice(1).every((value) => !String(value ?? "").trim());
+    if (isIndexNameRow) {
+      headers[0] = "track_id";
+      return { headers, dataStart: 3 };
+    }
+    return { headers, dataStart: 2 };
   }
   return { headers: first, dataStart: 1 };
 }
@@ -208,7 +218,7 @@ export async function readFmaTracks(filePath, genreTitles, onTrack, maxRows = In
   for await (const values of iterator) {
     if (!headers) {
       initialRows.push(values);
-      if (initialRows.length < 2) continue;
+      if (initialRows.length < 3) continue;
       ({ headers, dataStart } = buildHeaders(initialRows));
       columns = fmaColumns(headers);
       for (const pending of initialRows.slice(dataStart)) {
