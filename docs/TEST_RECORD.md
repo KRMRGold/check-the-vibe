@@ -37,7 +37,7 @@ The user accepted M1 with the two negative-case checks explicitly deferred. They
 |---|---|---|---|
 | MusicBrainz static core / JSON dumps | Recording, artist, release identity, ISRCs and relationships | Core data CC0; supplementary tags/genres/ratings/annotations CC BY-NC-SA 3.0. Full PostgreSQL core dump approximately 7 GB compressed; JSON entity dumps available, some several GB. Live API is limited to one request/second and is excluded under the no-quota rule. | RESEARCHED; NOT DOWNLOADED OR TESTED |
 | AcousticBrainz static archive | Precomputed BPM, key/scale, rhythm, danceability and high-level descriptors; join by recording MBID | CC0; frozen at 2022-07-06. 29,460,584 submissions, about 7.56m unique recordings. 100k-item sample: high-level about 85 MB, low-level about 2 GB. Duplicate submissions need an explicit selection policy. | RESEARCHED; NOT DOWNLOADED OR TESTED |
-| FMA metadata | Supplemental genres and tags | CC BY 4.0; 106,574 tracks; 342 MiB compressed; 2017 dataset. Use tracks.csv and genres.csv only; exclude echonest.csv, features.csv and audio. | LOCAL COMPARISON EXECUTED; 0/10 MATCHES |
+| FMA metadata | Supplemental genres and tags | CC BY 4.0; 106,574 tracks; 342 MiB compressed; 2017 dataset. Use tracks.csv and genres.csv only; exclude echonest.csv, features.csv and audio. | LOCAL COMPARISON + POSITIVE CONTROL EXECUTED; 1/1 POSITIVE CONTROL |
 | MTG-Jamendo metadata | Genre, instrument and mood/theme tags | About 55k tracks; metadata files are small. Metadata CC BY-NC-SA 4.0; dataset restricted to non-commercial research/academic use. | CONDITIONAL CANDIDATE; NOT DOWNLOADED OR TESTED |
 | ListenBrainz dumps | Listening events / possible future popularity research | CC0, but hundreds of millions of listens; user listening-history data, not canonical song metadata. | NOT IN METADATA PROVIDER CHAIN |
 | Discogs | Release/edition catalog in principle | Official Terms of Service prohibit downloading/copying and harvesting absent express written consent. | EXCLUDED PENDING EXPRESS PERMISSION |
@@ -51,20 +51,22 @@ Other exclusions: MeloData (user-rejected), Last.fm (key/usage controls and non-
 - Exact command: `npm run compare:fma -- --data-dir data/cache/fma_metadata`
 - Unit command: `node --test test/unit/fma-metadata.test.js`
 - Environment: user's Windows x64 environment; exact Node/npm versions were not included in this run output.
-- Unit result: **PASS — 6 tests, 0 failures**.
-- Dataset result: **PASS — comparison completed**; 106,575 data rows read; 0 exact single matches; 0 multiple exact matches; 0 title-only candidates; 10 no matches.
+- Unit result after the three-row pandas header/index parser fix: **PASS — 8 tests, 0 failures**.
+- Original sample result: **PASS — comparison completed**; 106,574 data rows read; 0 exact single matches; 0 multiple exact matches; 0 title-only candidates; 10 no matches. The corrected parser recognizes the third-row `track_id` index label, so the previous 106,575 count had included that header row.
 - Runtime note: the streaming implementation completed without the prior Node.js out-of-memory failure.
 - The user supplied the generated `results/fma-comparison.json`. All ten entries have `matchStatus: no_match` and empty match arrays. Original user-entered titles and uncertainty notes are preserved.
-- Interpretation: the strict matcher found no matches for this fixed sample in this FMA snapshot. This is not proof that FMA contains no useful metadata or that the parser is correct for all real archive rows. A positive-control test against a known FMA row remains required.
+- Parser regression: the user inspected real archive rows after the fix; track IDs populated correctly (e.g. `Freeway — Kurt Vile`, ID `10`), and the genre column parsed. The eight unit tests include a three-row grouped-header fixture matching the archive's structure.
+- Positive control: the user ran `npm run compare:fma -- --data-dir data/cache/fma_metadata --sample data/samples/fma-positive-control.json --output results/fma-positive-control-result.json`. The one-record sample (`Kurt Vile — Freeway`) returned **1 exact single match, 0 title-only candidates, 0 no match**, after reading 106,574 data rows.
+- Interpretation: the known-row positive control validates the tested parser and strict exact-title-plus-artist matcher end to end for that row. The original ten-record sample still has no matches; this does not prove FMA lacks useful coverage or that those recordings are absent from every FMA release/snapshot.
 - No fuzzy matching was introduced and no uncertain input title was silently corrected.
 
 ### Remaining verification
 
 | Check | Status | Evidence / next action |
 |---|---|---|
-| FMA parser unit tests | PASS | 6/6 tests passed on the user's machine |
+| FMA parser unit tests | PASS | 8/8 tests passed on the user's machine, including the real three-row header shape |
 | FMA 10-track strict comparison | PASS | 106,575 rows; 0 exact; 0 title-only; 10 no match |
-| FMA positive-control match | NOT RUN | Test a known row from the actual local archive against the matcher |
+| FMA positive-control match | PASS | `Kurt Vile — Freeway` from the local archive returned one exact match; 106,574 rows read |
 | AcousticBrainz MBID coverage | NOT RUN | First establish recording MBIDs, then test sample coverage and duplicate submissions |
 | MusicBrainz static import feasibility | NOT RUN | Evaluate a bounded JSON entity subset or compact index before considering the 7 GB PostgreSQL core dump |
 | MTG-Jamendo metadata comparison | NOT RUN | Requires an explicit decision that the non-commercial ShareAlike license is compatible |
@@ -119,11 +121,11 @@ Only record PASS when supported by exact command output or direct user-confirmed
 
 ### FMA comparison utility — execution record
 
-- Status: IMPLEMENTED AND EXECUTED LOCALLY; no provider selected.
+- Status: IMPLEMENTED, REGRESSION-TESTED, AND EXECUTED LOCALLY; no provider selected.
 - User downloaded/extracted the official FMA metadata archive locally; ZIP integrity check passed.
 - The utility reads only `tracks.csv` and `genres.csv`; it excludes `echonest.csv`, `features.csv`, audio files and live APIs.
-- User ran `node --test test/unit/fma-metadata.test.js`: 6 passed, 0 failed.
-- User ran `npm run compare:fma -- --data-dir data/cache/fma_metadata`: 106,575 rows read; 0 exact matches; 0 title-only candidates; 10 no matches.
+- User ran `node --test test/unit/fma-metadata.test.js` after the parser correction: 8 passed, 0 failed.
+- User ran `npm run compare:fma -- --data-dir data/cache/fma_metadata`: 106,574 data rows read; 0 exact matches; 0 title-only candidates; 10 no matches. The earlier 106,575 count included the third-row `track_id` index label.
 - The streaming implementation completed without the earlier out-of-memory error.
 - The user supplied the resulting JSON; all ten entries were `no_match`, with empty match arrays. Uncertain input wording remains unchanged.
-- Positive-control validation against a known row from the actual archive remains NOT RUN.
+- User ran the positive control using `data/samples/fma-positive-control.json` (`Kurt Vile — Freeway`): 106,574 rows read; 1 exact single match; 0 title-only candidates; 0 no match. The positive-control output JSON remains local and git-ignored.
