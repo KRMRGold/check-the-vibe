@@ -47,17 +47,24 @@ Decision: retain the existing loopback HTTP hosting and CSP. The successful deve
 
 ## M2 — Data-provider spike
 
-Research underway; no provider has been selected and no M2 code candidate has been created.
+Research direction revised on 2026-11-14. The user chose a multi-provider architecture and rejected MeloData. No provider has been selected, no adapter code exists, and no 10-track coverage test has been completed.
 
-Current shortlist:
-- MeloData is the strongest BPM/audio-feature candidate: free API key, capped free quota, title+artist resolution and ISRC feature lookup; docs describe Essentia analysis of iTunes/Deezer previews plus an AcousticBrainz archive. Its terms permit using and storing factual feature data in apps. No 10-track coverage test has been run.
-- Last.fm is a possible optional source for community track tags; it requires a free API key and restricts data use to non-commercial purposes.
-- MusicBrainz remains the existing baseline for genre/tags.
-- Wikidata has a CC0 BPM property, but useful per-track coverage is unproven.
-- GetSongBPM is a reserve candidate if its mandatory backlink is acceptable.
-- Audiometa is excluded pending proof its BPM/feature fields are not Spotify-derived. ReccoBeats is excluded for Spotify-derived metadata; SoundStat and Soundcharts are excluded as paid options.
+Current direction:
+- MusicBrainz remains the existing identity and genre/tag baseline.
+- AcousticBrainz is a candidate only as an openly licensed **static local dataset**, not its live API. The live API documents request limits (typically 10 requests per 10 seconds per IP). Its CC0 archive is frozen at 2022-07-06 and indexed by recording MBID. The 100,000-item low-level JSON sample is listed at 2 GB, so a practical import/subset strategy must be established before use.
+- FMA metadata is a candidate for supplemental genres/tags. The metadata archive is listed at 342 MiB compressed for 106,574 tracks and is CC BY 4.0. Use only metadata/tags/genres; explicitly exclude `echonest.csv`, which contains Echo Nest features associated with Spotify. Matching to app songs may require title+artist and must be measured for false matches.
+- Wikidata is not a live candidate: its public query service has processing-time and throttling limits. A full local dump is not justified without a smaller relevant extract.
+- FMAK key/mode annotations are excluded because the published annotation file includes Spotify URI mappings, conflicting with the project's no-Spotify boundary.
 
-No 10-track provider coverage test has been completed. Do not implement or select a default provider until real responses and terms are verified. The build spec's fallback remains an empty provider chain and user-entered stats only. See docs/decisions.md and docs/TEST_RECORD.md.
+Excluded:
+- MeloData: rejected by user; do not use.
+- Last.fm: free key and usage controls, plus non-commercial terms.
+- GetSongBPM: quota-limited API and mandatory backlink.
+- ReccoBeats: Spotify-derived metadata.
+- Audiometa: field provenance not established as independent of Spotify.
+- SoundStat / Soundcharts: paid services.
+
+Next step: establish a manageable, local-only dataset test using the same 10 recordings. Measure MusicBrainz and FMA metadata tag coverage, and AcousticBrainz feature coverage by MBID if a suitably small static extract is available. Record exact matches, missing values, duplicate submissions and data provenance. Until then, the provider chain remains provisional and the app continues to work with user-entered values only.
 
 ## Deferred
 
