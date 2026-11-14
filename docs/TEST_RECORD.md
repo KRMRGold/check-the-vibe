@@ -23,19 +23,23 @@
 
 The user accepted M1 with the two negative-case checks explicitly deferred. They are not recorded as passed. Keep the existing loopback HTTP origin and CSP; revisit if real playback failures demonstrate a need to change them.
 
-## M2 current investigation — no code candidate yet
+## M2 current investigation — expanded provider discovery
 
 - Milestone: M2 — Data-provider spike
 - App version remains 0.1.0; research only, no M2 code candidate has been created.
 - Required 10-track live coverage tests have not been run for any provider.
-- ReccoBeats: NOT RUN; current terms state that core track metadata is aggregated from Spotify, conflicting with the project's no-Spotify rule.
-- SoundStat: NOT RUN; current terms require a paid account and per-track payment.
-- Soundcharts: NOT RUN; current API plans are paid. A limited free sandbox is not a substitute for a real-catalog 10-track test.
-- GetSongBPM: NOT RUN; API is advertised as free but requires an API key, a mandatory backlink, and has a published 3,000-requests/hour limit. No project backlink or API key is configured.
-- AcousticBrainz: NOT RUN for the required 10-track sample. It is CC0 and MBID-based, but collection stopped in 2022. One example-record page fetch returned HTTP 429 through the available web retrieval path, and the API endpoint could not be retrieved through that path; this does not establish that the API is globally unavailable.
+- **MeloData: CANDIDATE — NOT RUN.** Free account/API key; 1,000 lookups/month, 25 bulk rows/month, 10 rows/job, 5 req/s and 100 req/min, no credit card. Native API supports title+artist resolution and ISRC feature lookup. Docs identify iTunes/Deezer preview analysis with Essentia and an AcousticBrainz archive source; no Spotify feature-data source is documented. Terms permit use, storage and caching of factual feature data in applications. Needs 10-track test and provenance confirmation.
+- **Last.fm: CANDIDATE — NOT RUN.** Free API key; track top-tags endpoint accepts artist+track or MBID. API terms restrict data use to non-commercial purposes; use requires caching and attribution. Suitable only as optional community tag source, not BPM.
+- **MusicBrainz: EXISTING SOURCE.** Recording genre/tag metadata is already in the spec. No additional adapter required; use as baseline and measure tag coverage during provider tests.
+- **Wikidata: CANDIDATE — NOT RUN.** CC0 structured data includes P1725 (numeric BPM) and P1558 (qualitative tempo marking). Property existence does not prove per-track coverage; test 10-track coverage before implementing.
+- **GetSongBPM: CANDIDATE — NOT RUN.** Free API but requires API key and mandatory backlink; 3,000 requests/hour. No key/backlink configured.
+- **AcousticBrainz: NOT RUN.** CC0, MBID-indexed, frozen in 2022; API remains available. MeloData incorporates an archive subset. Direct API coverage has not been measured.
+- **Audiometa: EXCLUDED PENDING PROVENANCE.** Free API with BPM/key/genres, but catalog explicitly includes Spotify platform data and the BPM provenance is unclear. Do not use without confirmation that the fields consumed are independent of Spotify and Spotify-derived data.
+- **ReccoBeats: EXCLUDED** because its terms disclose Spotify-derived core track metadata.
+- **SoundStat and Soundcharts: EXCLUDED** under the no-paid-services constraint.
 - No provider adapter or provider-chain implementation has been added yet.
 
-M2 remains in investigation. Do not claim a provider hit rate, adapter, or 10-track result until actual responses have been collected and recorded.
+M2 remains in investigation. Next required evidence is a 10-track live test of MeloData, plus a separate tag-coverage check for Last.fm if selected. Record exact inputs, identity match confidence, returned fields/nulls, source markers, quotas, terms and any Spotify derivation. Do not claim a hit rate or select a default until calls have actually been made.
 
 ## M0 accepted evidence
 
