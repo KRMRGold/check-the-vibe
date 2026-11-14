@@ -14,7 +14,8 @@
     "test": "npm run test:unit && npm run test:e2e",
     "test:unit": "node --test test/unit/*.test.js",
     "test:e2e": "playwright test",
-    "package:smoke": "electron-forge package"
+    "package:smoke": "electron-forge package",
+    "compare:fma": "node scripts/compare-fma.js"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
