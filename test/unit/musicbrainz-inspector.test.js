@@ -1,8 +1,18 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildTarArgs, getRecordingArtistCredit, normalizeText, parseChecksumManifest
+  buildTarArgs, describeMalformedJsonLine, getRecordingArtistCredit, normalizeText, parseChecksumManifest
 } from "../../scripts/inspect-musicbrainz.js";
+
+test("malformed JSON diagnostics include a bounded excerpt around the parser error", () => {
+  const line = '{"title":"' + "x".repeat(200) + 'BROKEN';
+  const result = describeMalformedJsonLine(line, 35622, new SyntaxError("Unterminated string in JSON at position 205"));
+  assert.equal(result.line, 35622);
+  assert.equal(result.length, line.length);
+  assert.equal(result.errorPosition, 205);
+  assert.ok(result.excerpt.length <= 240);
+  assert.ok(result.excerpt.includes("BROKEN"));
+});
 
 test("tar commands force local handling of Windows drive-letter paths", () => {
   const archive = "C:\\Users\\jo\\Desktop\\Active\\checkTheVibe\\data\\cache\\musicbrainz\\recording.tar.xz";
