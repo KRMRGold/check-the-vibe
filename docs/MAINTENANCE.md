@@ -5,7 +5,7 @@
 - Project: Check the Vibe
 - App version: 0.0.1
 - Current milestone: M0 — Skeleton and secure shell
-- Milestone status: all M0 acceptance checks verified locally; awaiting explicit user acceptance
+- Milestone status: M0 accepted by the user on 2026-11-14; acceptance tag pending
 - Tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
 - Current branch: main
 - Database schema: migration 0001
@@ -31,7 +31,7 @@
 - Packaged executable: manually launched successfully (user-confirmed).
 - Full evidence and command summaries: docs/TEST_RECORD.md.
 
-M0 is awaiting explicit user acceptance. Do not begin M1 or create an M0 acceptance tag until the user accepts the milestone.
+M0 was explicitly accepted by the user on 2026-11-14. The acceptance tag should point to the tested candidate commit recorded in docs/TEST_RECORD.md. M1 may now begin.
 
 ## Deferred
 
