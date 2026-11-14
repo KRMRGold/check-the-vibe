@@ -49,13 +49,15 @@ Decision: retain the existing loopback HTTP hosting and CSP. The successful deve
 
 Research underway; no provider has been selected and no M2 code candidate has been created.
 
-Initial findings:
-- ReccoBeats is excluded because its terms disclose Spotify-derived core track metadata.
-- SoundStat and Soundcharts require paid access for real catalog use.
-- GetSongBPM requires an API key and a mandatory backlink; neither is configured.
-- AcousticBrainz is CC0 and MusicBrainz-ID based, but its collection stopped in 2022 and the available retrieval path did not return a test record.
+Current shortlist:
+- MeloData is the strongest BPM/audio-feature candidate: free API key, capped free quota, title+artist resolution and ISRC feature lookup; docs describe Essentia analysis of iTunes/Deezer previews plus an AcousticBrainz archive. Its terms permit using and storing factual feature data in apps. No 10-track coverage test has been run.
+- Last.fm is a possible optional source for community track tags; it requires a free API key and restricts data use to non-commercial purposes.
+- MusicBrainz remains the existing baseline for genre/tags.
+- Wikidata has a CC0 BPM property, but useful per-track coverage is unproven.
+- GetSongBPM is a reserve candidate if its mandatory backlink is acceptable.
+- Audiometa is excluded pending proof its BPM/feature fields are not Spotify-derived. ReccoBeats is excluded for Spotify-derived metadata; SoundStat and Soundcharts are excluded as paid options.
 
-No 10-track provider coverage test has been completed. Do not implement or select a default provider until an eligible candidate is demonstrated. The build spec's fallback is an empty provider chain and user-entered stats only. See docs/decisions.md and docs/TEST_RECORD.md.
+No 10-track provider coverage test has been completed. Do not implement or select a default provider until real responses and terms are verified. The build spec's fallback remains an empty provider chain and user-entered stats only. See docs/decisions.md and docs/TEST_RECORD.md.
 
 ## Deferred
 
