@@ -187,7 +187,7 @@ Rules:
 
 ### Candidate providers (what is known, and what M2 must verify)
 
-The user selected a **multi-provider approach** and rejected MeloData. Do not use MeloData. Do not use live APIs or services with quotas, request caps, or other usage-limited access. Prefer openly licensed static datasets that can be downloaded once and queried locally.
+The user selected a **multi-provider approach** and rejected MeloData. Do not use MeloData. For new M2 providers, avoid paid or quota-capped services and do not make live API calls during this investigation. Prefer openly licensed static datasets that can be downloaded once and queried locally. The existing MusicBrainz integration remains part of the previously accepted app design; this research update does not alter it.
 
 | Provider / dataset | Potential role | Access and known constraints | M2 must verify |
 |---|---|---|---|
