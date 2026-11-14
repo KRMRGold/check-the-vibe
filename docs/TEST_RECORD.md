@@ -35,8 +35,10 @@ The user accepted M1 with the two negative-case checks explicitly deferred. They
 
 | Source | Candidate role | Access, license and constraints | Status |
 |---|---|---|---|
-| MusicBrainz static core / JSON dumps | Recording, artist, release identity, ISRCs and relationships | Core data CC0; supplementary tags/genres/ratings/annotations CC BY-NC-SA 3.0. Full PostgreSQL core dump approximately 7 GB compressed; JSON entity dumps available, some several GB. Live API is limited to one request/second and is excluded under the no-quota rule. | RESEARCHED; NOT DOWNLOADED OR TESTED |
-| AcousticBrainz static archive | Precomputed BPM, key/scale, rhythm, danceability and high-level descriptors; join by recording MBID | CC0; frozen at 2022-07-06. 29,460,584 submissions, about 7.56m unique recordings. 100k-item sample: high-level about 85 MB, low-level about 2 GB. Duplicate submissions need an explicit selection policy. | RESEARCHED; NOT DOWNLOADED OR TESTED |
+| MusicBrainz JSON recording dump | Identity fields for standalone recordings only | User downloaded and checksum-verified the 34 MB compressed archive. Inspector read 157,994 records: ID/title/artist credit 100%; duration 72.62%; ISRC 5.76%. Official definition: standalone recordings are not linked to a release, so this is not the main catalog. Core matching fields are CC0; supplementary annotations/tags/genres/ratings are CC BY-NC-SA 3.0. | INSPECTED LOCALLY; LIMITED SCOPE |
+| MusicBrainz release JSON dump | Main catalog route for release-associated tracks/recordings | Snapshot index lists release.tar.xz at 22 GB compressed, above the project's approximate 2 GB static-cache comfort range. Not downloaded. | SIZE VERIFIED; NOT DOWNLOADED |
+| MusicBrainz Canonical Data dump | Compact canonical identity/matching candidate across recordings, releases and artists | CC0, zstd CSV, updated twice monthly; MetaBrainz describes it as intended to provide one representative record per mostly equivalent release/recording set and useful for matching. Actual download size, schema and sample coverage remain unverified. | NEW CANDIDATE; NEEDS SIZE/SCHEMA CHECK |
+| AcousticBrainz static archive | Precomputed BPM, key/scale, rhythm, danceability and high-level descriptors; join by recording MBID | CC0; frozen at 2022-07-06. 29,460,584 submissions across 30 archives, about 7.56m unique recordings. Duplicate submissions exist; a 100k-item sample is available. Coverage depends on obtaining MBIDs for user tracks. | RESEARCHED; NOT DOWNLOADED OR TESTED |
 | FMA metadata | Supplemental genres and tags | CC BY 4.0; 106,574 tracks; 342 MiB compressed; 2017 dataset. Use tracks.csv and genres.csv only; exclude echonest.csv, features.csv and audio. | LOCAL COMPARISON + POSITIVE CONTROL EXECUTED; 1/1 POSITIVE CONTROL |
 | MTG-Jamendo metadata | Genre, instrument and mood/theme tags | About 55k tracks; metadata files are small. Metadata CC BY-NC-SA 4.0; dataset restricted to non-commercial research/academic use. | CONDITIONAL CANDIDATE; NOT DOWNLOADED OR TESTED |
 | ListenBrainz dumps | Listening events / possible future popularity research | CC0, but hundreds of millions of listens; user listening-history data, not canonical song metadata. | NOT IN METADATA PROVIDER CHAIN |
@@ -68,7 +70,8 @@ Other exclusions: MeloData (user-rejected), Last.fm (key/usage controls and non-
 | FMA 10-track strict comparison | PASS | 106,575 rows; 0 exact; 0 title-only; 10 no match |
 | FMA positive-control match | PASS | `Kurt Vile — Freeway` from the local archive returned one exact match; 106,574 rows read |
 | AcousticBrainz MBID coverage | NOT RUN | First establish recording MBIDs, then test sample coverage and duplicate submissions |
-| MusicBrainz static import feasibility | NOT RUN | Evaluate a bounded JSON entity subset or compact index before considering the 7 GB PostgreSQL core dump |
+| MusicBrainz recording dump inspection | PASS | User verified SHA-256; inspector read 157,994 standalone recordings; 9/9 inspector tests passed. Sample: 1 exact, 1 title-only candidate, 8 no match; sample is not representative. |
+| MusicBrainz full catalog feasibility | NOT RUN | Release JSON archive is 22 GB compressed; evaluate the CC0 canonical CSV dump as a smaller identity candidate (size/schema/coverage not yet verified) |
 | MTG-Jamendo metadata comparison | NOT RUN | Requires an explicit decision that the non-commercial ShareAlike license is compatible |
 | Provider chain / adapter behavior | NOT RUN | No provider adapter code exists |
 | Federation | NOT RUN | Design direction only; no network or exchange code exists |
@@ -76,6 +79,9 @@ Other exclusions: MeloData (user-rejected), Last.fm (key/usage controls and non-
 Research sources:
 - MusicBrainz dumps and licensing: https://musicbrainz.org/doc/MusicBrainz_Database/Download
 - MusicBrainz JSON dumps: https://musicbrainz.org/doc/Development/JSON_Data_Dumps
+- MusicBrainz standalone recording definition: https://musicbrainz.org/doc/Standalone_Recording
+- MetaBrainz canonical data dumps: https://metabrainz.org/datasets/derived-dumps
+- MusicBrainz release dump snapshot index: https://data.metabrainz.org/pub/musicbrainz/data/json-dumps/20261111-001001/
 - MetaBrainz dataset details: https://metabrainz.org/datasets/postgres-dumps
 - MusicBrainz API rate limit: https://musicbrainz.org/doc/MusicBrainz_API/Rate_Limiting
 - AcousticBrainz downloads: https://acousticbrainz.org/download
