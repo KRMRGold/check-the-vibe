@@ -60,6 +60,13 @@ function parseJsonCell(value) {
     const parsed = JSON.parse(value);
     return Array.isArray(parsed) ? parsed : [parsed];
   } catch {
+    // pandas may serialize Python list/dict values with single quotes rather than JSON.
+    const genreTitles = [...String(value).matchAll(/genre_title\\s*:\\s*['"]([^'"]+)['"]/g)]
+      .map((match) => ({ genre_title: match[1] }));
+    if (genreTitles.length) return genreTitles;
+    const quotedValues = [...String(value).matchAll(/['"]([^'"]+)['"]/g)]
+      .map((match) => match[1]);
+    if (quotedValues.length) return quotedValues;
     return String(value).split(/[|;]/).map((v) => v.trim()).filter(Boolean);
   }
 }
