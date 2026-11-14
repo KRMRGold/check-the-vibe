@@ -197,7 +197,7 @@ function parseGenres(csvText) {
   return map;
 }
 
-async function readFmaTracks(filePath, genreTitles, onTrack) {
+export async function readFmaTracks(filePath, genreTitles, onTrack, maxRows = Infinity) {
   const iterator = parseCsvStream(fs.createReadStream(filePath, { encoding: "utf8" }));
   const initialRows = [];
   let headers;
@@ -214,12 +214,14 @@ async function readFmaTracks(filePath, genreTitles, onTrack) {
       for (const pending of initialRows.slice(dataStart)) {
         onTrack(parseFmaTrackRow(pending, columns, headers, genreTitles));
         rowsRead += 1;
+        if (rowsRead >= maxRows) return rowsRead;
       }
       initialRows.length = 0;
       continue;
     }
     onTrack(parseFmaTrackRow(values, columns, headers, genreTitles));
     rowsRead += 1;
+    if (rowsRead >= maxRows) break;
   }
 
   if (!headers && initialRows.length) {
@@ -228,6 +230,7 @@ async function readFmaTracks(filePath, genreTitles, onTrack) {
     for (const pending of initialRows.slice(dataStart)) {
       onTrack(parseFmaTrackRow(pending, columns, headers, genreTitles));
       rowsRead += 1;
+      if (rowsRead >= maxRows) break;
     }
   }
   return rowsRead;
@@ -325,11 +328,37 @@ export async function runComparison({ dataDir, samplePath, outputPath }) {
 
 async function main() {
   if (process.argv.includes("--help")) {
-    process.stdout.write("Usage: npm run compare:fma -- --data-dir <folder-with-tracks.csv-and-genres.csv> [--sample <json>] [--output <json>]\n");
+    process.stdout.write("Usage: npm run compare:fma -- --data-dir <folder-with-tracks.csv-and-genres.csv> [--sample <json>] [--output <json>] [--inspect-rows <count>]\n");
     return;
   }
   const root = process.cwd();
   const dataDir = path.resolve(root, arg("--data-dir", "data/cache/fma_metadata"));
+  const inspectCount = process.argv.includes("--inspect-rows") ? Number(arg("--inspect-rows", "10")) : null;
+  if (inspectCount !== null) {
+    if (!Number.isInteger(inspectCount) || inspectCount < 1 || inspectCount > 100) {
+      throw new Error("--inspect-rows must be an integer from 1 to 100");
+    }
+    const tracksPath = path.join(dataDir, "tracks.csv");
+    const genresPath = path.join(dataDir, "genres.csv");
+    for (const file of [tracksPath, genresPath]) {
+      if (!fs.existsSync(file)) throw new Error("Missing required file: " + file);
+    }
+    const genreMap = parseGenres(fs.readFileSync(genresPath, "utf8"));
+    const records = [];
+    await readFmaTracks(tracksPath, genreMap, (track) => {
+      if (track.title.trim() && track.artist.trim()) {
+        records.push({
+          fmaTrackId: track.fmaTrackId,
+          title: track.title,
+          artist: track.artist,
+          genres: track.genres,
+          tags: track.tags
+        });
+      }
+    }, inspectCount);
+    process.stdout.write(JSON.stringify(records, null, 2) + "\n");
+    return;
+  }
   const samplePath = path.resolve(root, arg("--sample", "data/samples/fma-sample-10.json"));
   const outputPath = path.resolve(root, arg("--output", "results/fma-comparison.json"));
   const result = await runComparison({ dataDir, samplePath, outputPath });
