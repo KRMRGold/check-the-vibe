@@ -1,8 +1,26 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  buildTarArgs, describeMalformedJsonLine, getRecordingArtistCredit, normalizeText, parseChecksumManifest
+  assembleJsonlRecords, buildTarArgs, describeMalformedJsonLine, getRecordingArtistCredit, normalizeText, parseChecksumManifest
 } from "../../scripts/inspect-musicbrainz.js";
+
+test("JSONL assembler preserves physical newlines inside quoted annotation strings", async () => {
+  const physicalLines = [
+    '{"id":"one","annotation":"first line',
+    '',
+    'second line with \\"quoted text\\""}',
+    '{"id":"two","title":"Next record"}'
+  ];
+  async function* source() { yield* physicalLines; }
+  const records = [];
+  for await (const record of assembleJsonlRecords(source())) records.push(record);
+
+  assert.equal(records.length, 2);
+  assert.equal(records[0].lineNumber, 1);
+  assert.equal(JSON.parse(records[0].line).annotation, "first line\n\nsecond line with \\"quoted text\\"");
+  assert.equal(JSON.parse(records[1].line).title, "Next record");
+  assert.equal(records[1].lineNumber, 4);
+});
 
 test("malformed JSON diagnostics include a bounded excerpt around the parser error", () => {
   const line = '{"title":"' + "x".repeat(200) + 'BROKEN';
