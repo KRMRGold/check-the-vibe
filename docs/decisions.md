@@ -17,6 +17,28 @@
 ### Notes
 
 - Electron Forge 8 requires Node.js 22.17.0 or newer; the reported local runtime is Node.js 24.15.0.
-- The renderer Content Security Policy starts from build-spec.md §8.1. M1 must verify the exact policy and loopback hosting behavior with the YouTube IFrame API.
+- The renderer Content Security Policy starts from build-spec.md §8.1. M1 verifies the exact policy and loopback hosting behavior with the YouTube IFrame API.
 - Run npm install in the repository root to generate package-lock.json. Commit the generated lockfile before treating the dependency graph as reproducible.
 - No test result is claimed by this commit. See TEST_RECORD.md.
+
+## M1 — YouTube embed feasibility
+
+### Spike implementation
+
+- Keep the existing loopback HTTP origin and current CSP unchanged for the first test; do not broaden policy pre-emptively.
+- Load the official YouTube IFrame API script from `https://www.youtube.com/iframe_api`.
+- Create the player with `origin: location.origin`, `enablejsapi: 1`, and `playsinline: 1`.
+- Do not autoplay. Playback starts only after the user presses the explicit Play control.
+- Keep the player visible at 640×360, above YouTube's documented 200×200 minimum.
+- Map documented error codes 2, 5, 100, 101, 150 and 153 to user-facing explanations. Unit tests cover the deterministic mapping.
+- The spike is disposable; it is not the permanent M6 playback component.
+
+### Open verification questions
+
+- Does the current loopback origin and Referrer-Policy deliver the Referer/client identity needed to avoid error 153?
+- Does the same behavior hold in development and the unpacked Forge package?
+- What exact CSP directives, if any, must change based on observed browser/player failures?
+- The test screen accepts arbitrary video IDs. A verified public/embeddable fixture is set as the initial sample; private and embedding-disabled fixtures still need to be selected and their current classifications verified at test time. Do not treat a video as private or embedding-disabled based only on an unverified list.
+- Error 100 is documented as removed or private; 101 and 150 are documented as embedding disabled. Error 153 means the request lacks an HTTP Referer or equivalent API client identification.
+
+No M1 playback or packaged-build result is claimed yet.
