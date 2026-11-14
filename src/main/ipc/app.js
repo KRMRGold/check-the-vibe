@@ -1,0 +1,3 @@
+import { ipcMain } from "electron"; import { z } from "zod";
+const PingPayload = z.object({}).strict();
+export function registerAppIpc() { ipcMain.handle("app:ping", async (_event, payload) => { const parsed = PingPayload.safeParse(payload); if (!parsed.success) return { ok: false, error: { code: "INVALID_PAYLOAD", message: "The ping payload is invalid." } }; return { ok: true, data: { message: "pong" } }; }); }

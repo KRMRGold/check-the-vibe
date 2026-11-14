@@ -1,0 +1,1 @@
+const config = { packagerConfig: { asar: true, prune: true }, rebuildConfig: {}, makers: [], plugins: [{ name: "@electron-forge/plugin-auto-unpack-natives", config: {} }] }; export default config;

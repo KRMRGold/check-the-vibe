@@ -1,0 +1,2 @@
+const status = document.querySelector("#bridge-status"); const detail = document.querySelector("#bridge-detail");
+try { const result = await window.ctv.ping({}); if (result.ok) { status.textContent = "Desktop bridge connected"; detail.textContent = "The isolated renderer is communicating with the main process."; } else { status.textContent = "Desktop bridge unavailable"; detail.textContent = result.error.message; } } catch { status.textContent = "Desktop bridge unavailable"; detail.textContent = "The main process did not respond."; }

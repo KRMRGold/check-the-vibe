@@ -1,0 +1,1 @@
+import { defineConfig } from "@playwright/test"; export default defineConfig({ testDir: "./test/e2e", testMatch: "**/*.spec.js", timeout: 30000, expect: { timeout: 5000 }, fullyParallel: false, workers: 1, reporter: "list" });

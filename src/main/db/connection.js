@@ -1,0 +1,2 @@
+import Database from "better-sqlite3"; import { mkdirSync } from "node:fs"; import { dirname } from "node:path";
+export function openDatabase(databasePath) { mkdirSync(dirname(databasePath), { recursive: true }); const db = new Database(databasePath); db.pragma("foreign_keys = ON"); db.pragma("journal_mode = WAL"); db.pragma("busy_timeout = 5000"); if (db.pragma("foreign_keys", { simple: true }) !== 1) { db.close(); throw new Error("SQLite foreign-key enforcement could not be enabled."); } return db; }
