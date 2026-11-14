@@ -19,7 +19,7 @@ export function buildTarArgs(operation, archivePath, member) {
 }
 
 export function describeMalformedJsonLine(line, lineNumber, error) {
-  const match = String(error?.message ?? error).match(/position (\\d+)/i);
+  const match = String(error?.message ?? error).match(/position (\d+)/i);
   const position = match ? Number(match[1]) : 0;
   const start = Math.max(0, position - 120);
   const end = Math.min(line.length, position + 120);
@@ -28,7 +28,8 @@ export function describeMalformedJsonLine(line, lineNumber, error) {
     message: String(error?.message ?? error),
     length: line.length,
     errorPosition: position,
-    excerpt: line.slice(start, end)
+    excerpt: line.slice(start, end),
+    ending: line.slice(-160)
   };
 }
 
@@ -201,7 +202,7 @@ async function inspectJsonlMember(archivePath, member, sample) {
   lines.close();
   const exitCode = await exitPromise;
   if (spawnError) throw new Error(`Could not start the system tar command: ${spawnError.message}`);
-  if (firstMalformedLine) throw new Error(`Malformed JSON on recording line ${firstMalformedLine.line} (length ${firstMalformedLine.length}, error position ${firstMalformedLine.errorPosition}): ${firstMalformedLine.message}. Excerpt: ${JSON.stringify(firstMalformedLine.excerpt)}`);
+  if (firstMalformedLine) throw new Error(`Malformed JSON on recording line ${firstMalformedLine.line} (length ${firstMalformedLine.length}, error position ${firstMalformedLine.errorPosition}): ${firstMalformedLine.message}. Excerpt: ${JSON.stringify(firstMalformedLine.excerpt)}; ending: ${JSON.stringify(firstMalformedLine.ending)}`);
   if (exitCode !== 0) throw new Error(`tar could not extract ${member} (exit ${exitCode}): ${stderr.trim()}`);
   if (recordsRead === 0) throw new Error("The recording JSONL member contained no records.");
 
