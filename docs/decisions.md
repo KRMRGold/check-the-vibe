@@ -51,46 +51,53 @@
 
 ## M2 — Data-provider feasibility investigation
 
-### Expanded candidate findings (research only; no live 10-track tests completed)
+### User decision and revised constraints
 
-The provider chain may combine independent sources by attribute. Do not assume one provider must supply every field.
+The user selected a multi-provider architecture and rejected MeloData. Do not use MeloData. Prefer openly licensed static datasets over live services with quotas, request caps, or usage-limited plans. No live provider API calls, dataset downloads, coverage tests, adapters, or M2 code have been completed.
 
-| Candidate | Potential role | Access and limits | Eligibility / open questions |
+### Current candidate sources
+
+| Source | Potential role | Access / license / constraints | Status |
 |---|---|---|---|
-| **MeloData** | Primary BPM, key, energy, danceability and valence adapter | Free account/API key; 1,000 lookups/month; 25 bulk rows/month; 10 rows/job; 5 req/s and 100 req/min; no credit card | Strongest current candidate. Native API supports ISRC feature lookup and title+artist resolution. Docs identify iTunes/Deezer previews analyzed with Essentia plus the CC0 AcousticBrainz archive. The feature values are described as its own measurements, not copies of Spotify's. Terms permit use, storage and caching of factual feature data in applications. Verify coverage and returned provenance across 10 tracks before selecting. Use the native `/v1` API, not the Spotify-compatibility route. Free quotas are limited, so do not make the app depend on a shared project key. |
-| **Last.fm** | Supplemental community genre/mood tags | Free API key; non-commercial use only; reasonable-use/rate limits apply; cache responses and provide attribution | Track top-tags endpoint accepts artist+track or MBID and returns tags ordered by community tag count. Good for suggestions, not objective audio features. Check current terms before integration and keep it optional. |
-| **MusicBrainz tags/genres** | Existing primary open metadata source for genres/tags | No API key; meaningful User-Agent; approximately 1 request/second; non-commercial API use is free | Already specified in section 4. Reuse recording tags and genre data rather than adding a duplicate adapter. Coverage can be sparse. |
-| **GetSongBPM** | Supplemental BPM/key | Free API key; 3,000 requests/hour; mandatory backlink to GetSongBPM on the app website or store listing | Technically viable if the backlink condition is acceptable. No key/backlink currently configured. Test coverage and terms before selection. |
-| **Wikidata** | Opportunistic BPM and structured musical-work metadata | Structured data is CC0; SPARQL/API access | Property P1725 exists for numerical BPM and P1558 for qualitative tempo markings. This proves the field exists, not that coverage is useful. The property page exposes only a tiny number of examples; measure actual 10-track coverage before treating it as a provider. Wikipedia prose is better for supplemental artist/album context than structured per-track stats. |
-| **AcousticBrainz archive** | Historical BPM, rhythm, key and mood features | CC0; indexed by MusicBrainz recording MBID; data collection ended in 2022 | The API remains available and the archive contains millions of submissions, but it is frozen. MeloData incorporates an AcousticBrainz archive subset and can fill some missing fields with fresh preview analysis. Direct API coverage remains untested. |
-| **Audiometa** | Potential BPM/key/genre source | Free API key; no paid tier advertised | Catalog explicitly combines Spotify, YouTube and SoundCloud platform data, while BPM provenance is not sufficiently clear in the public material inspected. Exclude unless the provider confirms that every field we consume is independent of Spotify and Spotify-derived data. |
-| **ReccoBeats** | Not selected | Free access advertised | Excluded because its terms disclose Spotify-derived core track metadata. |
-| **SoundStat / Soundcharts** | Not selected | Paid access for real catalog use | Excluded under the no-paid-services constraint. |
+| **MusicBrainz** | Existing identity and genre/tag baseline | Already part of the app design. Existing API throttling remains in effect. | Existing source; include in coverage comparison |
+| **AcousticBrainz static archive** | BPM, key, mode, rhythm, danceability, high-level mood descriptors | CC0; indexed by MusicBrainz recording MBID; frozen 2022-07-06; 29,460,584 submissions and approximately 7.56 million unique recordings. Static dumps available. Official live API is rate-limited, typically 10 requests per 10 seconds per IP, so do not use its API. The 100,000-item low-level JSON sample is listed at 2 GB. | Candidate only if a manageable local subset/import route is found |
+| **FMA metadata** | Supplemental genres and tags | 106,574 tracks; metadata archive listed at 342 MiB compressed; metadata CC BY 4.0, attribution required. Use metadata/tags/genres only. Exclude `echonest.csv`, which contains Echo Nest features associated with Spotify. Matching to app songs likely requires title+artist. | Candidate; coverage and match reliability untested |
+| **Wikidata** | Possible structured BPM | P1725 and P1558 properties exist, but live Query Service has processing-time and throttling limits; full local dump is not justified. | Excluded from live testing; reconsider only with a small relevant static extract |
+| **FMAK key/mode dataset** | Manual key/mode annotations for 5,489 FMA tracks | Published annotation file includes Spotify URI mappings. | Excluded due no-Spotify-in-any-form rule |
 
-### Current recommendation
+### Excluded sources
 
-Run the required 10-track live coverage test against **MeloData first**. In parallel, evaluate **Last.fm for tags** and **Wikidata for opportunistic BPM** only if their terms/access and observed coverage justify the extra adapters. MusicBrainz remains the existing genre/tag baseline. Keep GetSongBPM as a reserve candidate if its mandatory backlink is acceptable.
+- **MeloData:** explicitly rejected by the user.
+- **Last.fm:** API key required; usage controls apply; API terms restrict use to non-commercial purposes.
+- **GetSongBPM:** quota-limited (3,000 requests/hour) and mandatory backlink.
+- **ReccoBeats:** Spotify-derived core track metadata.
+- **Audiometa:** insufficient evidence that consumed fields are independent of Spotify-derived data.
+- **SoundStat / Soundcharts:** paid services.
 
-For every test, record:
-- exact input (ISRC, MBID, or title+artist);
-- resolved recording identity and match confidence;
-- fields returned, nulls, provider/source marker, and confidence;
-- hit rate over the same 10 well-known tracks;
-- key requirements, quotas/rate limits, applicable terms, and attribution;
-- whether any returned data is Spotify-derived (must be no).
+### Provisional field chain
 
-Do not add code or select a default based on marketing claims alone. A free tier with a quota can be an optional adapter, but the app must remain usable without it and must not silently exceed the quota. Store provider credentials securely; never commit keys or put them in fixtures.
+- Identity: MusicBrainz.
+- Genres/tags: MusicBrainz → FMA metadata (optional local dataset) → user tags.
+- BPM/key/mode/rhythm/danceability: AcousticBrainz static archive (optional local dataset) → user values.
+- Mood descriptors: AcousticBrainz high-level archive where available → user tags.
+- Energy: user-set energy remains primary; do not map an incompatible external metric into the app's 1–5 scale without an explicit validated conversion.
+
+User values always win. Every provider value retains its source. Missing values remain unknown. The app must remain usable with no optional dataset installed.
+
+### Required next evidence
+
+Run a consistent 10-recording comparison using:
+- MusicBrainz as the existing baseline;
+- FMA metadata for genre/tag coverage and title+artist matching reliability;
+- AcousticBrainz static data for MBID-based feature coverage, only if a manageable extract can be obtained without invoking its rate-limited API.
+
+Record exact inputs, matches, returned fields, nulls, duplicate submissions, confidence/quality information, source/license/attribution, and match failures. Do not select a default provider or claim a hit rate before this test.
 
 ### Research sources
 
-- MeloData API docs and data-source notes: https://melodata.voltenworks.com/docs
-- MeloData terms: https://melodata.voltenworks.com/terms
-- Last.fm track top tags: https://www.last.fm/api/show/track.getTopTags
-- Last.fm API terms: https://www.last.fm/api/tos
-- MusicBrainz API: https://musicbrainz.org/doc/MusicBrainz_API
-- GetSongBPM API requirements: https://getsongbpm.com/api
-- Wikidata numerical BPM property P1725: https://www.wikidata.org/wiki/Property:P1725
-- Wikidata qualitative tempo property P1558: https://www.wikidata.org/wiki/Property:P1558
-- AcousticBrainz status and CC0 notice: https://acousticbrainz.org/
-- Audiometa catalog and API claims: https://www.audiometa.io/
-
+- AcousticBrainz API docs and rate limits: https://acousticbrainz.readthedocs.io/api.html
+- AcousticBrainz overview, CC0 license and statistics: https://acousticbrainz.org/
+- AcousticBrainz dumps and sample sizes: https://acousticbrainz.org/download
+- FMA dataset repository, metadata schema and CC BY 4.0 note: https://github.com/stellaywong/fma_keys
+- FMAK dataset description (excluded due Spotify URI mappings): https://zenodo.org/records/10719860
+- Wikidata Query Service constraints: https://www.mediawiki.org/wiki/Wikidata_query_service/Implementation
