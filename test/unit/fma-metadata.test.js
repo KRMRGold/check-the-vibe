@@ -1,12 +1,29 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildHeaders, compareSample, normalizeText, parseCsv, parseFmaTracks } from "../../scripts/compare-fma.js";
+import { Readable } from "node:stream";
+import {
+  buildHeaders, compareSample, normalizeText, parseCsv, parseCsvStream, parseFmaTracks
+} from "../../scripts/compare-fma.js";
 
 test("CSV parser handles quoted commas, escaped quotes, and embedded newlines", () => {
   assert.deepEqual(parseCsv('a,b\n1,"two, too"\n2,"say ""hi"""'), [
     ["a", "b"], ["1", "two, too"], ["2", 'say "hi"']
   ]);
   assert.deepEqual(parseCsv('a,b\n1,"two\nlines"'), [["a", "b"], ["1", "two\nlines"]]);
+});
+
+test("streaming CSV parser handles quoted fields split across chunks", async () => {
+  const chunks = [
+    'a,b\n1,"two,',
+    ' too"\n2,"say ""',
+    'hi"""\n3,"two\n',
+    'lines"'
+  ];
+  const rows = [];
+  for await (const row of parseCsvStream(Readable.from(chunks))) rows.push(row);
+  assert.deepEqual(rows, [
+    ["a", "b"], ["1", "two, too"], ["2", 'say "hi"'], ["3", "two\nlines"]
+  ]);
 });
 
 test("FMA two-row headers are combined into field names", () => {
