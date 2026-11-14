@@ -4,21 +4,25 @@
 
 - Milestone: M1 — YouTube embed feasibility
 - App version: 0.1.0
-- Candidate commit: implementation is in progress; record the exact commit before running the candidate checks.
+- Candidate implementation commit: `9defaf6244e512df28bd79d5fb28a13183a2739c` (M1 spike)
+- Evidence update commit: `a58cbf3fb1ef401a5bac1b7d6e436f607695163c` (development playback evidence)
+- Environment: Windows x64, Node.js 24.15.0, npm 11.13.0 (last reported by user; reconfirm if changed)
 - Environment: Windows x64, Node.js 24.15.0, npm 11.13.0 (last reported by user; reconfirm if changed)
 
 ### M1 results
 
 | Check | Status | Command / method | Evidence |
 |---|---|---|---|
-| YouTube error-code mapping (2, 5, 100, 101, 150, 153) | NOT RUN | `npm run test:unit` | Test added; user has not run it against this candidate |
+| YouTube error-code mapping (2, 5, 100, 101, 150, 153) | PASS | `npm run test:unit` | User confirmed the requested unit-test command passed on the M1 candidate; individual test count/output not supplied |
 | YouTube API script loads in development | PASS | `npm start` | User observed `IFrame API ready` in the event log on M1 candidate commit `9defaf6244e512df28bd79d5fb28a13183a2739c` |
 | Player reaches PLAYING in development | PASS | Load `M7lc1UVf-VE`, then press Play | User reported the video loaded and played; event log showed `UNSTARTED (-1)`, `BUFFERING (3)`, `PLAYING (1)`, then `PAUSED (2)` on candidate commit `9defaf6244e512df28bd79d5fb28a13183a2739c` |
 | Private video behavior | NOT RUN | Load a verified private video ID | Fixture not yet selected; verify its current status |
 | Embedding-disabled video behavior | NOT RUN | Load a verified embedding-disabled video ID | Fixture not yet selected; verify its current status |
-| Unpacked Forge package builds | NOT RUN | `npm run package:smoke` | Must run against the exact candidate commit |
-| Player reaches PLAYING in unpacked package | NOT RUN | Launch packaged executable and repeat playback test | Requires user-run packaged-app check |
-| Final CSP/hosting decision | NOT RUN | Record observed results in docs/decisions.md | Depends on development and packaged tests |
+| Unpacked Forge package builds | PASS | `npm run package:smoke` | User confirmed the requested package-smoke command passed |
+| Player reaches PLAYING in unpacked package | PASS | Launch packaged executable and repeat playback test | User confirmed playback works in the unpacked packaged app |
+| Final CSP/hosting decision | PROVISIONAL PASS | Compare development and unpacked-package playback using existing loopback hosting and CSP | Both environments played successfully; retain the existing CSP and loopback hosting for now. Negative-case video tests remain outstanding, so this is not the final M1 decision |
+
+Additional M1 user report: the user confirmed `npm run test:unit`, `npm run test:e2e`, and `npm run package:smoke` passed, and confirmed that the packaged application plays the test video. Exact console output and individual test counts were not provided. Private-video and embedding-disabled-video cases were explicitly not included in this run.
 
 ## M0 accepted evidence
 
