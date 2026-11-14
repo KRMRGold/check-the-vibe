@@ -1,28 +1,41 @@
-# Test Record
-
-## M1 current candidate
+## M1 accepted candidate
 
 - Milestone: M1 — YouTube embed feasibility
 - App version: 0.1.0
-- Candidate implementation commit: `9defaf6244e512df28bd79d5fb28a13183a2739c` (M1 spike)
-- Evidence update commit: `a58cbf3fb1ef401a5bac1b7d6e436f607695163c` (development playback evidence)
+- Tested implementation commit: `9defaf6244e512df28bd79d5fb28a13183a2739c`
+- Development playback evidence update: `a58cbf3fb1ef401a5bac1b7d6e436f607695163c`
 - Environment: Windows x64, Node.js 24.15.0, npm 11.13.0 (last reported by user; reconfirm if changed)
-- Environment: Windows x64, Node.js 24.15.0, npm 11.13.0 (last reported by user; reconfirm if changed)
+- Acceptance: user accepted M1 on 2026-11-14, explicitly deferring the private-video and embedding-disabled-video checks.
 
 ### M1 results
 
 | Check | Status | Command / method | Evidence |
 |---|---|---|---|
 | YouTube error-code mapping (2, 5, 100, 101, 150, 153) | PASS | `npm run test:unit` | User confirmed the requested unit-test command passed on the M1 candidate; individual test count/output not supplied |
-| YouTube API script loads in development | PASS | `npm start` | User observed `IFrame API ready` in the event log on M1 candidate commit `9defaf6244e512df28bd79d5fb28a13183a2739c` |
-| Player reaches PLAYING in development | PASS | Load `M7lc1UVf-VE`, then press Play | User reported the video loaded and played; event log showed `UNSTARTED (-1)`, `BUFFERING (3)`, `PLAYING (1)`, then `PAUSED (2)` on candidate commit `9defaf6244e512df28bd79d5fb28a13183a2739c` |
-| Private video behavior | NOT RUN | Load a verified private video ID | Fixture not yet selected; verify its current status |
-| Embedding-disabled video behavior | NOT RUN | Load a verified embedding-disabled video ID | Fixture not yet selected; verify its current status |
-| Unpacked Forge package builds | PASS | `npm run package:smoke` | User confirmed the requested package-smoke command passed |
+| YouTube API script loads in development | PASS | `npm start` | User observed `IFrame API ready` in the event log on the M1 candidate |
+| Player reaches PLAYING in development | PASS | Load `M7lc1UVf-VE`, then press Play | User reported the video loaded and played; event log showed `UNSTARTED (-1)`, `BUFFERING (3)`, `PLAYING (1)`, then `PAUSED (2)` |
+| Private video behavior | NOT RUN — accepted limitation | Load a verified private video ID | User explicitly chose not to create/use a private-video fixture; deferred |
+| Embedding-disabled video behavior | NOT RUN — accepted limitation | Load a verified embedding-disabled video ID | User explicitly deferred this test |
+| Electron E2E tests | PASS | `npm run test:e2e` | User confirmed the requested command passed; exact count/output not supplied |
+| Unpacked Forge package builds | PASS | `npm run package:smoke` | User confirmed the requested command passed |
 | Player reaches PLAYING in unpacked package | PASS | Launch packaged executable and repeat playback test | User confirmed playback works in the unpacked packaged app |
-| Final CSP/hosting decision | PROVISIONAL PASS | Compare development and unpacked-package playback using existing loopback hosting and CSP | Both environments played successfully; retain the existing CSP and loopback hosting for now. Negative-case video tests remain outstanding, so this is not the final M1 decision |
+| Loopback hosting and current CSP positive path | PASS | Compare development and unpacked-package playback | Playback works in both environments without changing the existing host or CSP. Negative video cases remain unverified. |
 
-Additional M1 user report: the user confirmed `npm run test:unit`, `npm run test:e2e`, and `npm run package:smoke` passed, and confirmed that the packaged application plays the test video. Exact console output and individual test counts were not provided. Private-video and embedding-disabled-video cases were explicitly not included in this run.
+The user accepted M1 with the two negative-case checks explicitly deferred. They are not recorded as passed. Keep the existing loopback HTTP origin and CSP; revisit if real playback failures demonstrate a need to change them.
+
+## M2 current investigation — no code candidate yet
+
+- Milestone: M2 — Data-provider spike
+- App version remains 0.1.0; research only, no M2 code candidate has been created.
+- Required 10-track live coverage tests have not been run for any provider.
+- ReccoBeats: NOT RUN; current terms state that core track metadata is aggregated from Spotify, conflicting with the project's no-Spotify rule.
+- SoundStat: NOT RUN; current terms require a paid account and per-track payment.
+- Soundcharts: NOT RUN; current API plans are paid. A limited free sandbox is not a substitute for a real-catalog 10-track test.
+- GetSongBPM: NOT RUN; API is advertised as free but requires an API key, a mandatory backlink, and has a published 3,000-requests/hour limit. No project backlink or API key is configured.
+- AcousticBrainz: NOT RUN for the required 10-track sample. It is CC0 and MBID-based, but collection stopped in 2022. One example-record page fetch returned HTTP 429 through the available web retrieval path, and the API endpoint could not be retrieved through that path; this does not establish that the API is globally unavailable.
+- No provider adapter or provider-chain implementation has been added yet.
+
+M2 remains in investigation. Do not claim a provider hit rate, adapter, or 10-track result until actual responses have been collected and recorded.
 
 ## M0 accepted evidence
 
