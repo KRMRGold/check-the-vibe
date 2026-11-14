@@ -171,15 +171,23 @@ async function inspectJsonlMember(archivePath, member, sample) {
   let firstRecordKeys = [];
   let firstRecordExample = null;
   let firstMalformedLine = null;
+  const malformedFollowingLines = [];
 
   for await (const line of lines) {
+    if (firstMalformedLine) {
+      malformedFollowingLines.push(line.slice(0, 500));
+      if (malformedFollowingLines.length >= 3) {
+        child.kill();
+        break;
+      }
+      continue;
+    }
     if (!line.trim()) continue;
     let record;
     try { record = JSON.parse(line); }
     catch (error) {
       firstMalformedLine = describeMalformedJsonLine(line, recordsRead + 1, error);
-      child.kill();
-      break;
+      continue;
     }
     recordsRead += 1;
     if (recordsRead === 1) {
@@ -202,7 +210,7 @@ async function inspectJsonlMember(archivePath, member, sample) {
   lines.close();
   const exitCode = await exitPromise;
   if (spawnError) throw new Error(`Could not start the system tar command: ${spawnError.message}`);
-  if (firstMalformedLine) throw new Error(`Malformed JSON on recording line ${firstMalformedLine.line} (length ${firstMalformedLine.length}, error position ${firstMalformedLine.errorPosition}): ${firstMalformedLine.message}. Excerpt: ${JSON.stringify(firstMalformedLine.excerpt)}; ending: ${JSON.stringify(firstMalformedLine.ending)}`);
+  if (firstMalformedLine) throw new Error(`Malformed JSON on recording line ${firstMalformedLine.line} (length ${firstMalformedLine.length}, error position ${firstMalformedLine.errorPosition}): ${firstMalformedLine.message}. Excerpt: ${JSON.stringify(firstMalformedLine.excerpt)}; ending: ${JSON.stringify(firstMalformedLine.ending)}; following physical lines: ${JSON.stringify(malformedFollowingLines)}`);
   if (exitCode !== 0) throw new Error(`tar could not extract ${member} (exit ${exitCode}): ${stderr.trim()}`);
   if (recordsRead === 0) throw new Error("The recording JSONL member contained no records.");
 
