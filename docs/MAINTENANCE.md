@@ -90,3 +90,12 @@ M3–M11 remain unstarted. Do not implement later milestone features before M2 i
 - User data is stored under Electron's userData directory; CTV_TEST_USER_DATA is a test-only override.
 - Never copy only the SQLite main file while WAL is active; use the SQLite backup API.
 - A package-lock.json has not yet been committed; reproducible dependency installation remains an operational follow-up.
+
+### FMA local comparison utility scaffold
+
+- Status: IMPLEMENTED AS A LOCAL RESEARCH UTILITY; NOT YET RUN AGAINST THE DATASET.
+- Added `scripts/compare-fma.js`, a dependency-free Node.js utility that reads only `tracks.csv` and `genres.csv`, compares normalized exact title+artist pairs, and reports title-only candidates separately for manual review.
+- Added the fixed first-ten user-provided sample at `data/samples/fma-sample-10.json`. Ambiguous user wording is preserved rather than silently corrected.
+- Dataset files belong under `data/cache/`; that directory is git-ignored. Generated comparison output under `results/` is also git-ignored. Only the small sample, script, tests, and empty directory markers are tracked.
+- The utility does not call APIs, inspect audio, or read `echonest.csv` or `features.csv`. It does not modify the app's provider architecture or select FMA as a provider.
+- Next: download/extract the official archive locally, run `npm run compare:fma -- --data-dir <folder-containing-tracks.csv-and-genres.csv>`, inspect the generated JSON, and record actual match evidence. No dataset has been downloaded by this change.
