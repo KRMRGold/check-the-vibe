@@ -96,3 +96,16 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - No federation transport, peer discovery, cache exchange, provider adapter, or dataset importer has been implemented or tested.
 - No 2 GB dataset has been downloaded. The user's clarification means this size is not inherently prohibitive, but a bulk download is not required by the playlist-driven cache model.
 - No new test is marked PASS. M2's fixed 10-recording provider coverage comparison remains NOT RUN.
+
+### FMA comparison utility scaffold
+
+- Status: IMPLEMENTED; EXECUTION NOT RUN IN THIS environment.
+- Added dependency-free parser/comparison utility and Node built-in unit tests.
+- Intended data inputs: FMA `tracks.csv` and `genres.csv` only.
+- Explicit exclusions: `echonest.csv`, `features.csv`, all audio files, live APIs.
+- Sample: first ten user-provided entries, preserving uncertain titles verbatim.
+- Dataset download, checksum verification, CSV schema against the actual archive, and 10-track coverage: NOT RUN. The previous attempt to download from this execution environment failed due host DNS/network resolution.
+- Required local checks after the user downloads/extracts the archive:
+  - `node --test test/unit/fma-metadata.test.js`
+  - `npm run compare:fma -- --data-dir <folder-containing-tracks.csv-and-genres.csv>`
+- Do not mark dataset coverage as PASS until the output is inspected and the archive's license/attribution file is checked.
