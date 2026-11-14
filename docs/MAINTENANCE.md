@@ -3,9 +3,9 @@
 ## Current state
 
 - Project: Check the Vibe
-- App version: 0.1.0 (M1 candidate; positive-path verification passed, negative cases outstanding)
-- Current milestone: M1 — YouTube embed feasibility
-- Milestone status: M0 accepted; M1 positive-path checks passed; private-video and embedding-disabled-video checks outstanding
+- App version: 0.1.0 (M1 accepted; M2 investigation underway)
+- Current milestone: M2 — Data-provider spike
+- Milestone status: M0 and M1 accepted; M1 private-video and embedding-disabled-video checks explicitly deferred; M2 provider research in progress
 - M0 tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
 - M0 acceptance tag: `m0-v0.0.1` (pushed; verified to target the tested M0 commit)
 - Current branch: main
@@ -32,7 +32,9 @@ Verification: 4 unit tests passed, 1 Electron E2E test passed, Windows x64 unpac
 
 ## M1 — YouTube embed feasibility
 
-Implementation started. The temporary spike screen loads the YouTube IFrame API from the existing loopback-hosted renderer, accepts a video ID, and exposes explicit Play/Pause controls. It displays the page origin, player states, and error messages.
+Accepted by the user on 2026-11-14 with the private-video and embedding-disabled-video checks explicitly deferred. These two checks remain untested and are not represented as passes.
+
+Implemented temporary spike behavior: loads the YouTube IFrame API from the existing loopback-hosted renderer, accepts a video ID, and exposes explicit Play/Pause controls. It displays the page origin, player states, and error messages.
 
 Verified by user report:
 - Development playback reaches PLAYING.
@@ -41,16 +43,23 @@ Verified by user report:
 - `npm run package:smoke` produces the unpacked Forge package.
 - Playback reaches PLAYING in the unpacked Forge package.
 
-Still outstanding:
-- A known private video produces the expected unavailable/private behavior.
-- A known embedding-disabled video produces the expected embed restriction behavior.
-- Final M1 CSP/hosting decision after the negative-case checks. Current provisional decision: retain the existing loopback hosting and CSP because positive-path playback works in development and the unpacked package.
+Decision: retain the existing loopback HTTP hosting and CSP. The successful development and unpacked-package playback paths did not demonstrate a need to change them. Full evidence and the accepted limitation are in docs/TEST_RECORD.md.
 
-Do not mark M1 accepted until its checks in build-spec.md §12 have evidence and the user accepts the candidate.
+## M2 — Data-provider spike
+
+Research underway; no provider has been selected and no M2 code candidate has been created.
+
+Initial findings:
+- ReccoBeats is excluded because its terms disclose Spotify-derived core track metadata.
+- SoundStat and Soundcharts require paid access for real catalog use.
+- GetSongBPM requires an API key and a mandatory backlink; neither is configured.
+- AcousticBrainz is CC0 and MusicBrainz-ID based, but its collection stopped in 2022 and the available retrieval path did not return a test record.
+
+No 10-track provider coverage test has been completed. Do not implement or select a default provider until an eligible candidate is demonstrated. The build spec's fallback is an empty provider chain and user-entered stats only. See docs/decisions.md and docs/TEST_RECORD.md.
 
 ## Deferred
 
-M2–M11 remain unstarted. Do not implement later milestone features before M1 is accepted.
+M3–M11 remain unstarted. Do not implement later milestone features before M2 is resolved.
 
 ## Operational notes
 
