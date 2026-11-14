@@ -86,3 +86,13 @@ Research sources:
 ## Rule
 
 Only record PASS when supported by exact command output or direct user-confirmed evidence. Record failures and environment blockers honestly.
+
+
+### Local metadata cache / federation architecture note
+
+- Status: DESIGN DIRECTION RECORDED — NOT IMPLEMENTED.
+- Playlist-driven provider enrichment and local persistence are the intended source of reusable metadata records.
+- Future federation may distribute eligible provider-sourced metadata records; it must not share private playlist membership, listening history, notes, account data, or user-authored values by default.
+- No federation transport, peer discovery, cache exchange, provider adapter, or dataset importer has been implemented or tested.
+- No 2 GB dataset has been downloaded. The user's clarification means this size is not inherently prohibitive, but a bulk download is not required by the playlist-driven cache model.
+- No new test is marked PASS. M2's fixed 10-recording provider coverage comparison remains NOT RUN.
