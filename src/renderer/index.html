@@ -1,1 +1,64 @@
-<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="color-scheme" content="dark"><title>Check the Vibe</title><link rel="stylesheet" href="./app.css"><script type="module" src="./app.js"></script></head><body><main class="shell"><header class="topbar"><div class="brand-mark" aria-hidden="true">CTV</div><div><p class="eyebrow">YOUR MUSIC. YOUR DECK. YOUR RULES.</p><h1>Check the Vibe</h1></div><span class="stage">M0 · FOUNDATION</span></header><section class="welcome" aria-labelledby="welcome-title"><p class="eyebrow">THE COLLECTION STARTS HERE</p><h2 id="welcome-title">A home for the music you keep.</h2><p class="intro">Your library, decks, and game will grow from one shared collection. This first build is the secure desktop foundation.</p><div class="status-panel"><span class="status-dot" aria-hidden="true"></span><div><strong id="bridge-status">Checking desktop bridge…</strong><p id="bridge-detail">Waiting for the main process.</p></div></div></section><footer>LOCAL COLLECTION · NO ACCOUNT REQUIRED</footer></main></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>Check the Vibe — YouTube Embed Spike</title>
+  <link rel="stylesheet" href="./app.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <main class="shell">
+    <header class="topbar">
+      <div class="brand-mark" aria-hidden="true">CTV</div>
+      <div>
+        <p class="eyebrow">M1 · FEASIBILITY SPIKE</p>
+        <h1>Check the Vibe</h1>
+      </div>
+      <span class="stage">YOUTUBE EMBED TEST</span>
+    </header>
+
+    <section class="content" aria-labelledby="welcome-title">
+      <p class="eyebrow">LOOPBACK HOSTING · IFRAME PLAYER API</p>
+      <h2 id="welcome-title">Can this player live here?</h2>
+      <p class="intro">A temporary test screen for checking YouTube playback in development and in the unpacked desktop build. Nothing is downloaded.</p>
+
+      <section class="test-panel" aria-label="Player test controls">
+        <label for="video-id">YouTube video ID</label>
+        <div class="controls">
+          <input id="video-id" type="text" value="M7lc1UVf-VE" spellcheck="false" autocomplete="off" aria-describedby="video-help">
+          <button id="load-video" type="button">Load video</button>
+          <button id="play-video" type="button" disabled>Play</button>
+          <button id="pause-video" type="button" disabled>Pause</button>
+        </div>
+        <p id="video-help" class="hint">Default ID is an official IFrame API sample; confirm its current availability during the test.</p>
+        <p class="origin-line">Page origin: <code id="page-origin">Checking…</code></p>
+      </section>
+
+      <div class="player-frame">
+        <div id="player" aria-label="YouTube video player"></div>
+        <p id="player-placeholder">Load a video to create the player.</p>
+      </div>
+
+      <section class="status-panel" aria-live="polite">
+        <span id="status-dot" class="status-dot" aria-hidden="true"></span>
+        <div>
+          <strong id="player-status">Waiting for YouTube API</strong>
+          <p id="player-detail">The IFrame API script will load when the page starts.</p>
+        </div>
+      </section>
+
+      <section class="event-panel" aria-label="Player event log">
+        <div class="event-heading">
+          <h3>Event log</h3>
+          <button id="clear-log" class="quiet-button" type="button">Clear</button>
+        </div>
+        <ol id="event-log" class="event-log"><li>Waiting for API…</li></ol>
+      </section>
+    </section>
+
+    <footer>THROWAWAY SPIKE · NO LIBRARY DATA · NO AUDIO DOWNLOADS</footer>
+  </main>
+</body>
+</html>
