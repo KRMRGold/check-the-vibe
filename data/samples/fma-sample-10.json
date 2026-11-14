@@ -1,0 +1,12 @@
+[
+  { "id": 1, "artist": "Ariana Grande", "title": "hate that i made you love me", "note": "User-provided wording; do not silently correct." },
+  { "id": 2, "artist": "Bruno Mars", "title": "Risk It All" },
+  { "id": 3, "artist": "Teddy Swims", "title": "Mr. Know It All" },
+  { "id": 4, "artist": "Taylor Swift", "title": "I new it, i knew you", "note": "Uncertain wording; candidate identity requires manual review." },
+  { "id": 5, "artist": "Taylor Swift", "title": "The Fate of Ophelia" },
+  { "id": 6, "artist": "Bebe Rexha & Faithless", "title": "New Religion" },
+  { "id": 7, "artist": "Dave", "title": "Raindance" },
+  { "id": 8, "artist": "Olivia Rodrigo", "title": "Stupid Strong", "note": "User-provided wording; title identity requires manual review." },
+  { "id": 9, "artist": "Nickelback", "title": "Make Me Love You" },
+  { "id": 10, "artist": "Temper City", "title": "Self Aware" }
+]
