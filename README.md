@@ -2,7 +2,7 @@
 
 A desktop-first music collection and playlist app where songs are cards, playlists are decks, and group listening can optionally become a music game.
 
-**Current stage:** M0 — Skeleton and secure shell. The first implementation candidate is committed; acceptance checks still need to be run on Windows.
+**Current stage:** M2 — Data-provider feasibility research. M0 and M1 are accepted; M2 remains in investigation.
 
 ## Requirements
 
