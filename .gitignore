@@ -7,3 +7,9 @@ test-results/
 *.log
 .DS_Store
 Thumbs.db
+
+# Optional local datasets and generated comparison output
+data/cache/*
+!data/cache/.gitkeep
+results/*
+!results/.gitkeep
