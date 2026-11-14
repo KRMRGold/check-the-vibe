@@ -3,9 +3,9 @@
 ## Current state
 
 - Project: Check the Vibe
-- App version: 0.1.0 (M1 candidate in progress)
+- App version: 0.1.0 (M1 candidate; positive-path verification passed, negative cases outstanding)
 - Current milestone: M1 — YouTube embed feasibility
-- Milestone status: M0 accepted; M1 implementation started, verification pending
+- Milestone status: M0 accepted; M1 positive-path checks passed; private-video and embedding-disabled-video checks outstanding
 - M0 tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
 - M0 acceptance tag: `m0-v0.0.1` (pushed; verified to target the tested M0 commit)
 - Current branch: main
@@ -34,12 +34,17 @@ Verification: 4 unit tests passed, 1 Electron E2E test passed, Windows x64 unpac
 
 Implementation started. The temporary spike screen loads the YouTube IFrame API from the existing loopback-hosted renderer, accepts a video ID, and exposes explicit Play/Pause controls. It displays the page origin, player states, and error messages.
 
-Not yet verified:
+Verified by user report:
 - Development playback reaches PLAYING.
-- Unpacked Forge build playback reaches PLAYING.
+- `npm run test:unit` passes.
+- `npm run test:e2e` passes.
+- `npm run package:smoke` produces the unpacked Forge package.
+- Playback reaches PLAYING in the unpacked Forge package.
+
+Still outstanding:
 - A known private video produces the expected unavailable/private behavior.
 - A known embedding-disabled video produces the expected embed restriction behavior.
-- Final CSP and hosting decision.
+- Final M1 CSP/hosting decision after the negative-case checks. Current provisional decision: retain the existing loopback hosting and CSP because positive-path playback works in development and the unpacked package.
 
 Do not mark M1 accepted until its checks in build-spec.md §12 have evidence and the user accepts the candidate.
 
