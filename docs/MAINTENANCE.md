@@ -47,6 +47,17 @@ Decision: retain the existing loopback HTTP hosting and CSP. The successful deve
 
 ## M2 — Data-provider spike
 
+### Local metadata cache and federation direction
+
+The user clarified the intended data lifecycle: playlist songs are enriched from the configured online sources, then their reusable metadata is stored locally. The cache grows from songs users actually add; users do not need to download a complete multi-gigabyte dataset.
+
+A future federation layer may share eligible provider-sourced metadata records between installations. For a later installation, the intended lookup order is local cache, then federation if enabled and reachable, then the original providers. Metadata is reusable independently of deck membership. Federation is not playlist sharing: playlist membership, listening history, private notes, account data, and user-authored values are not shared by default.
+
+Original provider provenance, source identifiers, retrieval time, confidence/match information, applicable license/attribution, and expiry must survive caching and peer transfer. Peer-supplied records are untrusted and require validation. Federation must not redistribute data or extend retention beyond what the original source permits.
+
+This is an architectural direction only. Federation topology, discovery/rendezvous, transport, consent controls, integrity/trust, conflict resolution, and abuse controls remain undecided. No federation code, provider adapter, or dataset importer has been implemented. M2's 10-recording provider comparison remains the next evidence task.
+
+
 Research direction revised on 2026-11-14. The user chose a multi-provider architecture and rejected MeloData. No provider has been selected, no adapter code exists, and no 10-track coverage test has been completed.
 
 Current direction:
