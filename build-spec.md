@@ -187,14 +187,35 @@ Rules:
 
 ### Candidate providers (what is known, and what M2 must verify)
 
-| Provider | Known so far | M2 must verify |
-|---|---|---|
-| **ReccoBeats** | Free, no key per its listing, returns Spotify-style features (energy, danceability, valence, tempo and more). Addressed by its own ID or a Spotify ID. Values are its own estimates. | **Whether a track can be looked up by ISRC, MBID, or name without going through Spotify IDs.** Terms of use and rate limits. If lookup requires a Spotify ID, it is unusable here (no Spotify) unless it offers another route. |
-| **SoundStat** | Independent audio-analysis API, launched early 2025 as a replacement after Spotify's deprecation, several million tracks analyzed. | How tracks are referenced, key and pricing, terms, ISRC support. |
-| **Soundcharts** | Commercial audio-features API covering BPM, key, energy, valence, danceability, resolving tracks by ISRC or streaming IDs without audio upload. | Pricing, whether a hobby or non-commercial tier exists, terms. |
-| **GetSongBPM** | Free, name-based, but only BPM and key. | Attribution requirements and rate limits. |
-| **AcousticBrainz** | Collection stopped in 2022. Data is CC0, keyed by MusicBrainz recording ID, with BPM, danceability, moods and key. Its own team said BPM is right for many recordings and wrong for others, and key was only reliable for some styles. | Whether the API is still up. No coverage of anything after 2022. The full dump is too large to ship, so API-only and optional. |
-| **Essentia** (local analysis) | Open-source analyzer behind AcousticBrainz. Needs an audio file you own. | Deferred (local-file playback is a non-goal). |
+The user selected a **multi-provider approach** and rejected MeloData. Do not use MeloData. Do not use live APIs or services with quotas, request caps, or other usage-limited access. Prefer openly licensed static datasets that can be downloaded once and queried locally.
+
+| Provider / dataset | Potential role | Access and known constraints | M2 must verify |
+|---|---|---|---|
+| **AcousticBrainz static archive** | BPM, key, mode, rhythm, danceability, acoustic/mood features | CC0. Frozen dataset dated 2022-07-06; indexed by MusicBrainz recording MBID. Contains 29,460,584 submissions across about 7.56 million unique recordings. Static JSON dumps and feature CSVs are published. The official live API is rate-limited (typically 10 requests per 10 seconds per IP), so **do not use the live API**. The 100,000-item low-level JSON sample is listed at 2 GB; full feature CSV sizes have not been verified. | Find a practical static subset or a manageable local import path. Measure coverage for 10 test recordings by MBID and inspect duplicate submissions, missing fields, confidence/quality indicators, and BPM/key semantics. No download or coverage test has been run. |
+| **Free Music Archive (FMA) metadata** | Supplemental genres and community tags | Static dataset; 106,574 tracks. Metadata archive is listed at 342 MiB compressed. Metadata is CC BY 4.0 and requires attribution. Match is likely by normalized title+artist because an MBID mapping is not established. **Do not use `echonest.csv`**: it contains Echo Nest features (now associated with Spotify). Use only FMA metadata/tags/genres. | Inspect exact metadata columns, attribution requirements, track coverage, and false-match risk across 10 known recordings. Determine whether its size and catalog fit justify a local optional dataset. No download or coverage test has been run. |
+| **MusicBrainz genres/tags** | Existing baseline for genres and identity | Already part of the app design. Existing API is rate-limited and should remain governed by its current adapter's documented throttling; no new duplicate adapter is needed. | Reuse the existing source; measure its tag coverage in the same 10-track comparison. |
+| **Wikidata** | Possible structured BPM fallback | P1725 exists for numerical BPM and P1558 for qualitative tempo. The public Query Service imposes processing-time and throttling limits, so do not query it live. A full static dump is not currently justified for this app. | Excluded from the MVP candidate chain unless a small, openly licensed, static extract with useful coverage is identified. Property existence alone is not coverage evidence. |
+| **FMAK key/mode annotations** | Possible key/mode reference dataset | 5,489 manually annotated FMA tracks. Its annotation file includes Spotify URI mappings; the project rule is no Spotify in any form, so **exclude this dataset** rather than risk consuming or retaining those identifiers. | No test. Excluded on the no-Spotify boundary. |
+
+### Excluded candidates
+
+- **MeloData:** rejected by the user. Do not use or reintroduce it.
+- **Last.fm:** free API key required; API terms limit use to non-commercial purposes and API access is subject to usage controls. Do not use it for this project under the no-usage-limited-services boundary.
+- **GetSongBPM:** free API but quota-limited (3,000 requests/hour) and requires a backlink. Do not use.
+- **ReccoBeats:** excluded because its terms disclose Spotify-derived core track metadata.
+- **Audiometa:** excluded until field-level provenance can prove that any consumed values are independent of Spotify and Spotify-derived data.
+- **SoundStat / Soundcharts:** excluded as paid services.
+
+### Proposed multi-provider field chain (provisional; not selected until measured)
+
+- **Identity:** MusicBrainz.
+- **Genres/tags:** MusicBrainz → FMA metadata (optional local dataset) → user tags.
+- **BPM/key/mode/rhythm/danceability:** AcousticBrainz static archive (optional local dataset) → user values.
+- **Mood descriptors:** AcousticBrainz high-level archive where present → user tags.
+- **Energy:** user-set energy remains the reliable primary value; do not invent a normalized provider value where the source does not define a compatible measure.
+
+All provider values retain source and provenance. User-entered values always win. Missing data remains unknown. The app must remain usable if optional datasets are absent. No dataset or adapter is selected until the same 10-track test establishes actual coverage, field quality, matching reliability, licensing and practical dataset size.
+
 
 ---
 
