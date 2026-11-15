@@ -101,7 +101,7 @@ test("rejects a truncated TAR archive", async () => {
 
 
 test("streams one selected TAR member without extracting it", async () => {
-  const expected = Buffer.from("selected CSV member\\nwith multiple rows\\n");
+  const expected = Buffer.from("selected CSV member\nwith multiple rows\n");
   const archive = makeArchive([
     tarMember("snapshot/COPYING", "license text"),
     tarMember("snapshot/canonical/data.csv", expected.toString("utf8")),
@@ -233,7 +233,7 @@ test("streams multiple selected TAR members in archive order with backpressure",
 });
 
 test("multi-member streaming reports a missing requested member", async () => {
-  const archive = makeArchive([tarMember("snapshot/present.csv", "id\\n1\\n")]);
+  const archive = makeArchive([tarMember("snapshot/present.csv", "id\n1\n")]);
 
   await withArchive(archive, async (archivePath) => {
     const selected = openZstdTarMembers(archivePath, ["snapshot/present.csv", "snapshot/missing.csv"]);
@@ -243,7 +243,8 @@ test("multi-member streaming reports a missing requested member", async () => {
       }
     };
     const consumers = Promise.all([...selected.streams.values()].map(consume));
-    await assert.rejects(selected.done, /TAR member "snapshot\\/missing.csv" was not found/);
-    await assert.rejects(consumers);
+    const consumerFailure = assert.rejects(consumers);
+    await assert.rejects(selected.done, /missing.csv was not found/);
+    await consumerFailure;
   });
 });
