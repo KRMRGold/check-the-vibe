@@ -156,3 +156,14 @@ This is an architectural decision only. It does not mean federation, a provider 
 - AcousticBrainz remains an optional future candidate only. The 85 MB high-level sample archive was downloaded locally and its SHA-256 checksum verified, but its contents, MBID coverage, duplicate submissions and feature quality were not inspected. No coverage claim is made.
 - This is an explicit M2 scope exit accepted by the user so offline-first M3 work can proceed. Reopening provider research requires a concrete reason and should not block the library/deck milestone.
 - No provider adapter, dataset importer, live provider call or federation implementation is implied by this decision.
+
+
+## M3 — Deck entry and persistence model
+
+- Reuse the existing `decks` and `deck_entries` tables from migration 0001; no new migration is needed for the first deck-management slice.
+- A deck entry is an occurrence, not a unique song-to-deck association. Its own ID identifies that placement, and its position orders it within the deck. The same library song may appear multiple times in one deck and in multiple decks.
+- Library songs remain canonical reusable local records. Removing one deck entry removes only that occurrence; deleting a deck cascades to its entries but does not delete the songs.
+- Append new entries at the end. Reordering requires the submitted IDs to be an exact permutation of the deck's current entries; invalid or stale orders are rejected without changing the deck.
+- Removing an occurrence compacts the remaining positions to zero-based contiguous order. Reordering also writes contiguous zero-based positions. These rules make order deterministic and straightforward to restore.
+- Decks and entries remain local/offline. This is not playlist sharing or federation; no network behavior is introduced.
+- Status: implementation candidate added on `main`; repository and unit tests are present, but the candidate has not yet been executed or accepted. Renderer deck UI remains outstanding.
