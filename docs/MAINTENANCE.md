@@ -80,14 +80,16 @@ M3 is the active milestone and work is being done directly on `main`. The manual
 
 ## M4 — Identification and pasted lists (design refinement)
 
-M4 is the next milestone. The existing build specification describes pasted Artist–Title lists, MusicBrainz candidate identification, match scoring/review, and Cover Art Archive artwork. However, its live MusicBrainz Web Service workflow conflicts with the later design decision and M2 constraints: live MusicBrainz requests are excluded under the no-quota policy, while the inspected static MusicBrainz Canonical Data snapshot is a promising local identity source. Before implementation, resolve the M4 identity source and confirm the Cover Art Archive usage/attribution boundary. Do not silently reintroduce the live MusicBrainz API or treat the older build-spec section as overriding the accepted M2 decision.
+M4 direction accepted by the user on 2026-11-14:
+- Accept pasted Artist — Title rows as an import source independent of YouTube playlist import; preserve each original line and its order.
+- Use the locally available MusicBrainz Canonical Data snapshot for identity matching. Do not call the live MusicBrainz Web Service under the accepted no-quota constraint.
+- Implement a bounded local lookup/index strategy; do not require downloading or indexing the entire multi-gigabyte MusicBrainz catalog.
+- Return deterministic ranked recording candidates with match evidence. Auto-confirm only high-confidence unambiguous matches; send uncertain or conflicting results to review.
+- Preserve recording MBIDs and release MBIDs separately. Keep pasted source text, catalog-derived canonical fields, and user corrections distinct.
+- Cover Art Archive remains a separate artwork source keyed by release MBID. Its retrieval, caching, attribution, and redistribution boundaries must be verified before implementation.
+- YouTube video parsing and video-to-recording matching belong to M5 playlist import, not this M4 pasted-list slice.
 
-Initial M4 design direction to refine:
-- Accept pasted Artist — Title rows as a source independent of YouTube playlist import.
-- Identify against the locally available MusicBrainz Canonical Data snapshot if a bounded, practical lookup/index can be built; preserve candidate ambiguity and require review for uncertain matches.
-- Keep canonical song identity separate from the pasted source text; never silently overwrite user input.
-- Use a release MBID to request Cover Art Archive artwork only after its current usage and attribution requirements are confirmed.
-- Keep metadata provenance, confidence, and user corrections distinct.
+The existing migration already includes song identity fields and import job/item tables, but the import-item shape is currently YouTube-video-specific (video_id is required). Inspect whether a small schema extension or a separate pasted-list import record is the cleaner fit before writing M4 persistence code. Do not assume the current import tables already support pasted rows.
 
 M5–M11 remain deferred. Do not implement later milestone features before their prerequisites are accepted.
 
