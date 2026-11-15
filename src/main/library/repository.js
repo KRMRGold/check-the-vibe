@@ -80,7 +80,7 @@ export function createLibraryRepository(db) {
       if (clean.length) {
         const match = clean.map((part) => `"${part}"*`).join(" AND ");
         rows = db.prepare(`${SEARCH_SQL}
-          JOIN songs_fts f ON f.rowid = s.rowid
+          JOIN songs_fts ON songs_fts.rowid = s.rowid
           WHERE songs_fts MATCH ?
           ORDER BY ${sortSql}`).all(match);
       } else {
