@@ -69,11 +69,11 @@ Other exclusions: MeloData (user-rejected), Last.fm (key/usage controls and non-
 | FMA parser unit tests | PASS | 8/8 tests passed on the user's machine, including the real three-row header shape |
 | FMA 10-track strict comparison | PASS | 106,575 rows; 0 exact; 0 title-only; 10 no match |
 | FMA positive-control match | PASS | `Kurt Vile — Freeway` from the local archive returned one exact match; 106,574 rows read |
-| AcousticBrainz MBID coverage | NOT RUN | First establish recording MBIDs, then test sample coverage and duplicate submissions |
+| AcousticBrainz MBID coverage | NOT RUN — ACCEPTED DEFERRAL | High-level sample archive downloaded and checksum-verified locally; archive contents, MBID coverage and duplicate submissions were not inspected. AcousticBrainz remains an optional candidate, not an MVP dependency. |
 | MusicBrainz recording dump inspection | PASS | User verified SHA-256; inspector read 157,994 standalone recordings; 9/9 inspector tests passed. Sample: 1 exact, 1 title-only candidate, 8 no match; sample is not representative. |
 | MusicBrainz full catalog feasibility | PASS — STATIC SAMPLE COMPARISON COMPLETE | Canonical archive SHA-256 verified; archive members inspected; canonical CSV size verified at 7,729,129,612 bytes; streaming scan read 32,442,553 rows; existing 10-track sample returned 8 exact single matches, 0 duplicate exact matches, 0 title-only candidates, and 2 no matches. No extraction to disk or app importer was needed. The separate release JSON archive remains 22 GB compressed and was not downloaded. |
 | MTG-Jamendo metadata comparison | NOT RUN | Requires an explicit decision that the non-commercial ShareAlike license is compatible |
-| Provider chain / adapter behavior | NOT RUN | No provider adapter code exists |
+| Provider chain / adapter behavior | NOT IMPLEMENTED — ACCEPTED M2 EXIT | User accepted M2 with no external feature provider selected and an empty-by-default provider chain. User-entered attributes remain available; provider work can resume as a separate future decision. |
 | Federation | NOT RUN | Design direction only; no network or exchange code exists |
 
 Research sources:
@@ -140,3 +140,14 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - The streaming implementation completed without the earlier out-of-memory error.
 - The user supplied the resulting JSON; all ten entries were `no_match`, with empty match arrays. Uncertain input wording remains unchanged.
 - User ran the positive control using `data/samples/fma-positive-control.json` (`Kurt Vile — Freeway`): 106,574 rows read; 1 exact single match; 0 title-only candidates; 0 no match. The positive-control output JSON remains local and git-ignored.
+
+
+## M2 accepted candidate — empty-by-default provider chain
+
+- Acceptance: user accepted the M2 exit on 2026-11-14 and approved moving to M3.
+- Decision: no external audio-feature provider is selected for the MVP at this point. The provider chain remains empty by default; the app must remain fully usable with user-entered attributes.
+- MusicBrainz canonical data remains a promising static identity reference (8 exact single matches in the bounded ten-recording sample), but it is not a BPM/key/energy provider and no app integration was implemented.
+- FMA metadata parser tests and the positive control passed, but the original ten-recording comparison returned no matches; FMA is not selected as an MVP provider.
+- AcousticBrainz high-level sample: 85 MB archive downloaded to the user's local cache and SHA-256 verified. The archive was not extracted or inspected; MBID coverage, duplicate handling and feature quality remain NOT RUN. This is an accepted deferral, not a pass.
+- No provider adapters, dataset importers, live provider calls or federation code exist. No claim is made that AcousticBrainz coverage is adequate.
+- M3 may proceed offline-first without any provider implementation.
