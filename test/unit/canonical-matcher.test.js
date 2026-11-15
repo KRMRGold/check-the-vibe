@@ -51,6 +51,8 @@ test("canonical normalization matches the established accent and punctuation rul
 
 test("SequenceMatcher ratio follows difflib's matching-block ratio with autojunk disabled", () => {
   assert.equal(sequenceMatcherRatio("abcd", "abce"), 0.75);
+  assert.equal(sequenceMatcherRatio("kitten", "sitting"), 8 / 13);
+  assert.equal(sequenceMatcherRatio("tide", "diet"), 0.25);
   assert.equal(sequenceMatcherRatio("", ""), 1);
   assert.equal(sequenceMatcherRatio("abc", ""), 0);
   assert.equal(sequenceMatcherRatio("same", "same"), 1);
