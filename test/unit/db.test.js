@@ -90,7 +90,7 @@ test("migration preserves existing YouTube import items", async () => {
     db.prepare("INSERT INTO import_items (id, job_id, position, video_id, state) VALUES ('item-1', 'job-1', 1, 'video-1', 'matched')").run();
 
     const result = await runMigrations(db, { databasePath: path });
-    assert.deepEqual(result.applied, [2]);
+    assert.deepEqual(result.applied, [2, 3]);
     assert.deepEqual(
       db.prepare("SELECT video_id, source_line, state FROM import_items WHERE id = 'item-1'").get(),
       { video_id: "video-1", source_line: null, state: "matched" }
