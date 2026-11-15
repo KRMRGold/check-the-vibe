@@ -35,7 +35,7 @@ export function parsePastedTrackLines(text) {
 export function createPasteImportRepository(db) {
   const insertJob = db.prepare(
     "INSERT INTO import_jobs (id, provider, source_ref, status, total, matched, needs_review, unavailable, created_at) " +
-    "VALUES (?, 'paste', ?, 'done', ?, 0, 0, 0, ?)"
+    "VALUES (?, 'paste', ?, 'running', ?, 0, 0, 0, ?)"
   );
   const insertItem = db.prepare(
     "INSERT INTO import_items (id, job_id, position, video_id, source_line, parse_error, state, parsed_artist, parsed_title, candidates_json) " +
@@ -57,7 +57,7 @@ export function createPasteImportRepository(db) {
     return {
       id: jobId,
       provider: "paste",
-      status: "done",
+      status: "running",
       total: items.length,
       items
     };
