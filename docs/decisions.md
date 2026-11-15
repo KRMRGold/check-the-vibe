@@ -166,4 +166,6 @@ This is an architectural decision only. It does not mean federation, a provider 
 - Append new entries at the end. Reordering requires the submitted IDs to be an exact permutation of the deck's current entries; invalid or stale orders are rejected without changing the deck.
 - Removing an occurrence compacts the remaining positions to zero-based contiguous order. Reordering also writes contiguous zero-based positions. These rules make order deterministic and straightforward to restore.
 - Decks and entries remain local/offline. This is not playlist sharing or federation; no network behavior is introduced.
-- Status: implementation candidate added on `main`; repository and unit tests are present, but the candidate has not yet been executed or accepted. Renderer deck UI remains outstanding.
+- The renderer presents deck navigation, deck create/edit/delete, deck contents, library search/add, occurrence removal, and move-up/move-down reordering. Repeated Add actions intentionally create repeated occurrences.
+- Deck operations are local/offline and use the existing validated IPC/preload boundary. No provider, network, or federation behavior is introduced.
+- Status: implementation candidate added on `main`; repository, IPC, renderer UI, and tests are present, but the candidate has not yet been executed or accepted.
