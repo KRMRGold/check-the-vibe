@@ -61,3 +61,11 @@ test("keeps canonical recordings and releases separate with many-to-many associa
   link.run("recording-1", "release-2");
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM musicbrainz_recording_releases WHERE recording_mbid = ?").get("recording-1").count, 2);
 });
+
+test("does not turn a final line terminator into an extra blank item", () => {
+  const items = parsePastedTrackLines("Artist — Title\n");
+  assert.equal(items.length, 1);
+  const withIntentionalBlank = parsePastedTrackLines("Artist — Title\n\n");
+  assert.equal(withIntentionalBlank.length, 2);
+  assert.equal(withIntentionalBlank[1].parseError, "EMPTY_LINE");
+});
