@@ -153,23 +153,25 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - M3 may proceed offline-first without any provider implementation.
 
 
-## M3 implementation slice — manual library foundation
+## M3 implementation — manual library and deck management
 
-- Branch: `m3/library-foundation` (draft candidate; not accepted)
-- Implemented on the branch: local manual song add/edit; user tags; user BPM and energy; FTS-backed title/artist/tag search; recent/title/artist sorting; list and card-grid presentation; validated IPC; repository-level SQLite persistence.
-- Unit coverage added for manual song persistence, tag/attribute replacement on edit, search across title/artist/tags, and sorting.
-- Electron E2E coverage updated to create a song through the UI, search its tag, verify empty results, and retain renderer isolation / invalid IPC checks.
-- Status: NOT RUN in a local Electron/Windows environment. No tests are marked PASS until the user runs the candidate locally.
-- Remaining M3 scope: deck CRUD, adding reusable songs to decks, occurrence-level ordering/removal, fuller library filtering, and milestone acceptance.
+- Work is on `main`; no branch or PR workflow is used.
+- Manual local song library: add/edit; user tags, BPM and energy; FTS-backed title/artist/tag search; recent/title/artist sorting; list and card-grid presentation; validated IPC; SQLite persistence.
+- Deck management candidate: create/list/rename/delete decks; optional descriptions; add library songs to decks; allow repeated occurrences of the same song; remove one occurrence; reorder entries; browse and search library songs while viewing a deck.
+- The existing schema supports this without a migration: `decks` owns deck metadata, while `deck_entries` stores independent occurrence IDs and positions.
+- Seven unit tests and an extended Electron E2E scenario have been added for deck behavior.
+- Prior library-only candidate passed 28 unit tests and 1 Electron E2E test on the user's Windows environment. The deck candidate has not yet been run; see the M3 deck management candidate record above.
+- Remaining M3 scope: verify the deck candidate, address failures, review any remaining library filtering and deck UX needs, and obtain M3 acceptance.
 
 
-## M3 deck foundation — candidate, not yet executed
+## M3 deck management — candidate, not yet executed
 
-- Candidate source: current `main` at commit `b74623e3adb077268492091bc0e795c178d4576f` (deck foundation plus unit-test coverage).
-- Prior verified baseline: commit `fc89000`; user ran `npm test`: **28/28 unit tests passed and 1/1 Electron E2E test passed**.
+- Candidate source: `main` at commit `35f52e552bff6c9d9668e78b440cc16ffe798fad`.
+- Prior verified baseline: commit `fc89000`; user ran `npm test`: **28/28 unit tests passed and 1/1 Electron E2E test passed**. That result predates all deck changes.
 - Schema inspection: migration `0001_init.sql` already defines `decks` and `deck_entries`. No schema change or migration was needed.
-- Implemented: deck create/list/update/delete; add/list/remove deck entries; reorder all entries with validation; stable occurrence IDs; append position assignment; position compaction after removal; duplicate song occurrences; one library song reusable across decks.
-- Persistence behavior: each deck entry has its own ID and position. Removing an entry or deleting a deck does not delete its library song. Deleting a deck cascades only to its deck entries.
-- Added unit tests for deck CRUD, duplicate occurrences in one deck, reuse across decks, removing one occurrence, song preservation, position compaction, reorder validation, reorder persistence after database reopen, and deck deletion.
-- **Status: IMPLEMENTED; NOT RUN.** The new deck unit tests and full suite have not been executed against this candidate. Do not mark this candidate accepted until the user reports the run or an available execution environment verifies the exact commit.
-- Remaining M3 work: renderer deck UI and end-to-end coverage, then broader M3 acceptance.
+- Implemented: deck create/list/update/delete; deck descriptions; add/list/remove entries; duplicate song occurrences; one library song reusable across decks; validated full-order reordering; contiguous position compaction after removal; activity timestamp updates; deck management and contents UI.
+- Persistence behavior: each deck entry has its own ID and position. Removing an entry or deleting a deck does not delete its library song. Deleting a deck cascades only to its entries.
+- Added **7 unit tests** for deck CRUD, duplicate occurrences in one deck, reuse across decks, removing one occurrence, song preservation, position compaction, reorder validation, reorder persistence after database reopen, and deck deletion.
+- Extended the Electron E2E test to create a deck, add the same song twice, add another song, reorder, remove one occurrence, and verify the song remains in the library.
+- **Status: IMPLEMENTED; NOT RUN.** Neither the new deck unit tests nor the extended Electron E2E flow has been executed against this candidate. Do not mark this candidate accepted until the full suite passes.
+- Next: run `npm test` on this exact candidate, repair any failures, then continue with any remaining M3 scope and acceptance.
