@@ -149,3 +149,48 @@ test("rejects a selected TAR member whose declared payload is truncated", async 
     );
   });
 });
+
+
+function paxPathRecord(value) {
+  const record = ` path=${value}\n`;
+  let length = Buffer.byteLength(record) + 2;
+  while (true) {
+    const next = Buffer.byteLength(String(length)) + Buffer.byteLength(record);
+    if (next === length) return Buffer.from(`${length}${record}`, "utf8");
+    length = next;
+  }
+}
+
+test("resolves PAX path metadata when listing and streaming a member", async () => {
+  const path = "snapshot/canonical/日本語-recordings.csv";
+  const payload = Buffer.from("recording_mbid,recording_name\n");
+  const archive = makeArchive([
+    tarMember("PaxHeaders/data", paxPathRecord(path), "x"),
+    tarMember("placeholder.csv", payload.toString("utf8"))
+  ]);
+
+  await withArchive(archive, async (archivePath) => {
+    const members = await listZstdTarMembers(archivePath);
+    assert.equal(members[0].name, path);
+    const chunks = [];
+    for await (const chunk of openZstdTarMember(archivePath, path)) chunks.push(Buffer.from(chunk));
+    assert.deepEqual(Buffer.concat(chunks), payload);
+  });
+});
+
+test("resolves GNU long-name metadata when listing and streaming a member", async () => {
+  const path = "snapshot/canonical/" + "recordings-".repeat(12) + "data.csv";
+  const payload = Buffer.from("id,name\n1,example\n");
+  const archive = makeArchive([
+    tarMember("././@LongLink", Buffer.from(path + "\0"), "L"),
+    tarMember("short.csv", payload.toString("utf8"))
+  ]);
+
+  await withArchive(archive, async (archivePath) => {
+    const members = await listZstdTarMembers(archivePath);
+    assert.equal(members[0].name, path);
+    const chunks = [];
+    for await (const chunk of openZstdTarMember(archivePath, path)) chunks.push(Buffer.from(chunk));
+    assert.deepEqual(Buffer.concat(chunks), payload);
+  });
+});
