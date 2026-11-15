@@ -21,7 +21,9 @@
     <div class="workspace">
       <aside class="sidebar">
         <p class="nav-label">COLLECTION</p>
-        <a class="nav-item active" href="#library" aria-current="page"><span>▦</span> Library</a>
+        <a class="nav-item active" id="library-nav" href="#library" aria-current="page"><span>▦</span> Library</a>
+        <div class="sidebar-section-heading"><p class="nav-label">DECKS</p><button class="sidebar-add" id="create-deck-button" type="button" aria-label="Create deck">＋</button></div>
+        <div id="deck-list" class="deck-nav-list"></div>
         <div class="sidebar-note"><span class="note-mark">✳</span><p>Your collection starts with the songs you choose to keep.</p></div>
         <div class="sidebar-bottom"><span class="local-dot"></span> Stored on this device</div>
       </aside>
@@ -50,6 +52,19 @@
           </form>
         </section>
 
+        <section class="song-form-panel" id="deck-form-panel" hidden aria-labelledby="deck-form-title">
+          <div class="form-heading"><div><p class="eyebrow">DECK EDITOR</p><h2 id="deck-form-title">Create a deck</h2></div><button class="icon-button" id="close-deck-form" type="button" aria-label="Close form">×</button></div>
+          <form id="deck-form">
+            <div class="form-grid">
+              <label class="field field-wide">Name<input name="name" maxlength="120" required placeholder="e.g. Night drives"></label>
+              <label class="field field-wide">Description<input name="description" maxlength="1000" placeholder="Optional note about this deck"></label>
+            </div>
+            <div class="form-actions"><button class="quiet-button" id="cancel-deck-form" type="button">Cancel</button><button class="primary-button" type="submit" id="save-deck-button">Create deck</button></div>
+            <p class="form-error" id="deck-form-error" role="alert"></p>
+          </form>
+        </section>
+
+        <section id="library-view">
         <div class="library-toolbar">
           <label class="search-box"><span aria-hidden="true">⌕</span><input id="library-search" type="search" placeholder="Search songs, artists, tags…" autocomplete="off"><kbd>SEARCH</kbd></label>
           <div class="toolbar-controls"><label class="sort-control">Sort <select id="library-sort"><option value="recent">Recently updated</option><option value="title">Title</option><option value="artist">Artist</option></select></label><div class="view-toggle" role="group" aria-label="Library view"><button type="button" class="view-button active" data-view="list" aria-pressed="true" aria-label="List view">☰</button><button type="button" class="view-button" data-view="grid" aria-pressed="false" aria-label="Card view">▦</button></div></div>
@@ -57,6 +72,20 @@
 
         <div class="library-summary"><span id="song-count">0 songs</span><span class="summary-divider">/</span><span>LOCAL COLLECTION</span></div>
         <div id="song-list" class="song-list" aria-live="polite"><div class="empty-state"><span class="empty-symbol">♫</span><h2>Your library is waiting.</h2><p>Add a song to start building your collection.</p></div></div>
+        </section>
+
+        <section id="deck-view" hidden>
+          <div class="deck-toolbar">
+            <div><p class="eyebrow">DECK CONTENTS</p><p id="deck-count" class="deck-count">0 tracks</p></div>
+            <div class="deck-actions"><button class="quiet-button" id="edit-deck-button" type="button">Edit deck</button><button class="danger-button" id="delete-deck-button" type="button">Delete deck</button></div>
+          </div>
+          <div id="deck-entry-list" class="deck-entry-list" aria-live="polite"></div>
+          <section class="deck-add-panel">
+            <div><p class="eyebrow">COLLECTION</p><h2>Add from your library</h2><p class="page-description">Add the same song more than once if you want.</p></div>
+            <label class="search-box deck-search"><span aria-hidden="true">⌕</span><input id="deck-song-search" type="search" placeholder="Find a song or artist…" autocomplete="off"></label>
+            <div id="deck-song-results" class="deck-song-results"></div>
+          </section>
+        </section>
         <p class="workspace-footer">CHECK THE VIBE <span>·</span> A LITTLE SPACE FOR A LOT OF MUSIC</p>
       </section>
     </div>
