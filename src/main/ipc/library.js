@@ -1,6 +1,7 @@
 import { ipcMain } from "electron";
 import { z } from "zod";
 import { createLibraryRepository } from "../library/repository.js";
+import { createPasteImportRepository } from "../library/paste-import.js";
 
 const SongInput = z.object({
   id: z.string().uuid().optional(),
@@ -19,12 +20,17 @@ const ListInput = z.object({
   sort: z.enum(["recent", "added", "title", "artist", "bpm", "energy"]).default("recent")
 }).strict();
 
+const PasteInput = z.object({
+  text: z.string().min(1).max(500000)
+}).strict();
+
 function failure(code, message) {
   return { ok: false, error: { code, message } };
 }
 
 export function registerLibraryIpc(db) {
   const library = createLibraryRepository(db);
+  const pasteImports = createPasteImportRepository(db);
   ipcMain.handle("library:list", async (_event, payload) => {
     const parsed = ListInput.safeParse(payload);
     if (!parsed.success) return failure("INVALID_PAYLOAD", "The library query is invalid.");
@@ -40,6 +46,16 @@ export function registerLibraryIpc(db) {
     } catch (error) {
       if (error.message === "SONG_NOT_FOUND") return failure("NOT_FOUND", "That song no longer exists.");
       return failure("SONG_SAVE_FAILED", "The song could not be saved.");
+    }
+  });
+  ipcMain.handle("library:import-paste", async (_event, payload) => {
+    const parsed = PasteInput.safeParse(payload);
+    if (!parsed.success) return failure("INVALID_PAYLOAD", "Paste text is missing or too large.");
+    try {
+      return { ok: true, data: { job: pasteImports.create(parsed.data.text) } };
+    } catch (error) {
+      if (error.message === "PASTE_TOO_MANY_LINES") return failure("TOO_MANY_LINES", "A paste import can contain at most 500 lines.");
+      return failure("PASTE_IMPORT_FAILED", "The pasted tracks could not be imported.");
     }
   });
 }
