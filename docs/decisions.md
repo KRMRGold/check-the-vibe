@@ -180,3 +180,10 @@ This is an architectural decision only. It does not mean federation, a provider 
 - Schema gaps confirmed in migration `0001_init.sql`: `songs.mbid_recording` is unique, but there is no separate song-to-release association; `import_items.video_id` is NOT NULL and therefore cannot directly represent pasted-list rows. Add a migration for the smallest clear persistence model before implementation. Preserve original pasted lines and repeated occurrences while allowing confirmed duplicate recording identities to reuse one library song.
 - M4 remains offline: no live MusicBrainz Web Service calls. Cover Art Archive is still a separate, deferred artwork concern.
 - Archive inspection is confirmed locally by the user; the app-side decompression, TAR streaming, matching, redirect resolution, persistence, and review UI have not yet been implemented or tested.
+
+## M4 — Archive reader implementation choice
+
+- Use Node's built-in `node:zlib` Zstandard streams rather than adding a package or requiring an external `zstd.exe`. Node documents the APIs as experimental and available from Node 22.15; the repository engine floor is Node 22.17 and Electron 45.3.2 embeds Node 24.
+- Initial implementation is deliberately limited to listing TAR members while discarding payload bytes. It uses bounded chunk buffering and validates header checksums; it does not extract the multi-gigabyte CSV.
+- A separate Electron embedded-Node smoke command was added because passing Node CLI unit tests alone does not prove the Electron runtime exposes the same API.
+- This is a spike, not yet accepted runtime support: user-side unit and Electron smoke tests remain pending. The next archive-reader slice must expose the selected CSV member as a stream without writing it to disk. Current parser explicitly rejects PAX/GNU long-name extension headers; verify the supplied archive does not use them before relying on the reader for the full dump.
