@@ -101,7 +101,7 @@ M5–M11 remain deferred. Do not implement later milestone features before their
 - Paste jobs remain in `running` state after staging; malformed source lines remain retained as unmatched rows.
 - `createPasteImportMatchingRepository()` streams the staged valid rows through the canonical archive matcher and persists the snapshot ID, per-row match evidence, candidate recording metadata, release metadata, and recording-to-release associations.
 - Only a single exact canonical recording match is automatically marked `matched` and stored in `matched_recording_mbid`. Fuzzy, multiple-exact, and title-only results remain `needs_review`; no-match and malformed rows remain `unmatched`.
-- Canonical identity matching is deliberately separate from library song creation. Matching never creates a row in `songs` or sets `chosen_song_id`.
+- Canonical identity matching is deliberately separate from library song creation. Matching never creates a row in `songs` or sets `chosen_song_id`. The source `artist_mbids` field remains verbatim in each item's candidate evidence; `artist_mbids_json` stays null until the dump's encoding is verified.
 - Migration 0003 adds `import_jobs.snapshot_id` and `import_items.matched_recording_mbid`.
 - The main-process IPC offers a native file picker for the local `.zst` snapshot; the renderer-facing preload method is `ctv.library.matchPaste({ id })`. The review/confirmation UI is not implemented yet.
 - A failed match leaves staged item states and candidate data untouched and marks the job failed so it can be retried. Completed jobs cannot be processed again.
