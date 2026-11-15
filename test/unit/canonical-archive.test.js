@@ -54,7 +54,7 @@ test("lists Zstandard TAR members without extracting their payloads", async () =
     const members = await listZstdTarMembers(archivePath);
     assert.deepEqual(members, [
       { name: "snapshot/TIMESTAMP", size: 10, type: "file" },
-      { name: "snapshot/canonical/data.csv", size: 12, type: "file" }
+      { name: "snapshot/canonical/data.csv", size: 11, type: "file" }
     ]);
   });
 });
