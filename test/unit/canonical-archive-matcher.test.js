@@ -10,17 +10,17 @@ import { matchCanonicalArchive } from "../../src/main/musicbrainz/canonical-matc
 function tarHeader(name, size) {
   const header = Buffer.alloc(512);
   header.write(name, 0, 100, "utf8");
-  header.write("0000644\\0", 100, 8, "ascii");
-  header.write("0000000\\0", 108, 8, "ascii");
-  header.write("0000000\\0", 116, 8, "ascii");
-  header.write(size.toString(8).padStart(11, "0") + "\\0", 124, 12, "ascii");
+  header.write("0000644\0", 100, 8, "ascii");
+  header.write("0000000\0", 108, 8, "ascii");
+  header.write("0000000\0", 116, 8, "ascii");
+  header.write(size.toString(8).padStart(11, "0") + "\0", 124, 12, "ascii");
   header.fill(32, 148, 156);
   header[156] = "0".charCodeAt(0);
-  header.write("ustar\\0", 257, 6, "ascii");
+  header.write("ustar\0", 257, 6, "ascii");
   header.write("00", 263, 2, "ascii");
   let checksum = 0;
   for (const byte of header) checksum += byte;
-  header.write(checksum.toString(8).padStart(6, "0") + "\\0 ", 148, 8, "ascii");
+  header.write(checksum.toString(8).padStart(6, "0") + "\0 ", 148, 8, "ascii");
   return header;
 }
 
@@ -31,7 +31,7 @@ function tarMember(name, value) {
 }
 
 function csv(headers, rows) {
-  return [headers, ...rows].map((row) => row.join(",")).join("\\n") + "\\n";
+  return [headers, ...rows].map((row) => row.join(",")).join("\n") + "\n";
 }
 
 async function makeArchive(directory, filename, members) {
