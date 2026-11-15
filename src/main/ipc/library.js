@@ -36,6 +36,7 @@ export function registerLibraryIpc(db) {
   const pasteImports = createPasteImportRepository(db);
   const pasteMatching = createPasteImportMatchingRepository(db);
   const activePasteMatches = new Map();
+  const selectingPasteMatches = new Set();
   ipcMain.handle("library:list", async (_event, payload) => {
     const parsed = ListInput.safeParse(payload);
     if (!parsed.success) return failure("INVALID_PAYLOAD", "The library query is invalid.");
@@ -56,11 +57,20 @@ export function registerLibraryIpc(db) {
   ipcMain.handle("library:match-paste", async (event, payload) => {
     const parsed = PasteJobInput.safeParse(payload);
     if (!parsed.success) return failure("INVALID_PAYLOAD", "The paste import job is invalid.");
-    const selected = await dialog.showOpenDialog({
-      title: "Select MusicBrainz Canonical Data snapshot",
-      properties: ["openFile"],
-      filters: [{ name: "Zstandard snapshot archives", extensions: ["zst"] }]
-    });
+    if (activePasteMatches.has(parsed.data.id) || selectingPasteMatches.has(parsed.data.id)) {
+      return failure("ALREADY_PROCESSING", "That paste import is already being matched.");
+    }
+    selectingPasteMatches.add(parsed.data.id);
+    let selected;
+    try {
+      selected = await dialog.showOpenDialog({
+        title: "Select MusicBrainz Canonical Data snapshot",
+        properties: ["openFile"],
+        filters: [{ name: "Zstandard snapshot archives", extensions: ["zst"] }]
+      });
+    } finally {
+      selectingPasteMatches.delete(parsed.data.id);
+    }
     if (selected.canceled || !selected.filePaths[0]) return failure("CANCELLED", "Snapshot selection was cancelled.");
     const controller = new AbortController();
     activePasteMatches.set(parsed.data.id, controller);
