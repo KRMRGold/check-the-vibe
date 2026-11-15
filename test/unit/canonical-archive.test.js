@@ -249,3 +249,38 @@ test("multi-member streaming reports a missing requested member", async () => {
     await consumerFailure;
   });
 });
+
+
+test("rejects an already-aborted archive member listing", async () => {
+  const archive = makeArchive([tarMember("snapshot/TIMESTAMP", "2026-11-03")]);
+  await withArchive(archive, async (archivePath) => {
+    const controller = new AbortController();
+    controller.abort();
+    await assert.rejects(
+      listZstdTarMembers(archivePath, { signal: controller.signal }),
+      (error) => error.name === "AbortError" && error.code === "ABORT_ERR"
+    );
+  });
+});
+
+test("multi-member archive streaming can be cancelled", async () => {
+  const archive = makeArchive([
+    tarMember("snapshot/data.csv", "row\n".repeat(10000)),
+    tarMember("snapshot/other.csv", "other\n".repeat(10000))
+  ]);
+  await withArchive(archive, async (archivePath) => {
+    const controller = new AbortController();
+    const selected = openZstdTarMembers(
+      archivePath,
+      ["snapshot/data.csv", "snapshot/other.csv"],
+      { signal: controller.signal }
+    );
+    const consume = async (stream) => {
+      for await (const _chunk of stream) { /* consume until cancellation */ }
+    };
+    const consumers = Promise.all([...selected.streams.values()].map(consume));
+    controller.abort();
+    await assert.rejects(selected.done, (error) => error.name === "AbortError");
+    await assert.rejects(consumers);
+  });
+});
