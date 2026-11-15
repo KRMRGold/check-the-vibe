@@ -131,3 +131,21 @@ test("rejects a selected TAR member that does not exist", async () => {
     );
   });
 });
+
+
+test("rejects a selected TAR member whose declared payload is truncated", async () => {
+  const header = tarHeader("snapshot/data.csv", 20);
+  const partialPayload = Buffer.from("short");
+  const archive = Buffer.concat([header, partialPayload]);
+
+  await withArchive(archive, async (archivePath) => {
+    await assert.rejects(
+      async () => {
+        for await (const _chunk of openZstdTarMember(archivePath, "snapshot/data.csv")) {
+          // Consume the stream so its truncation error is observed.
+        }
+      },
+      /TAR member "snapshot\/data.csv" is truncated/
+    );
+  });
+});
