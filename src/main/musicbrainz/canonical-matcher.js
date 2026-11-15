@@ -111,12 +111,12 @@ function addCandidate(map, recordingId, row, match) {
       recordingName: row.recording_name,
       artistCreditName: row.artist_credit_name,
       artistMbidsRaw: row.artist_mbids || null,
-      releases: new Set(),
+      releases: new Map(),
       ...match
     };
     map.set(recordingId, candidate);
   }
-  if (row.release_mbid) candidate.releases.add(row.release_mbid);
+  if (row.release_mbid) candidate.releases.set(row.release_mbid, row.release_name || null);
   if (match.combinedSimilarity != null &&
       (candidate.combinedSimilarity == null || match.combinedSimilarity > candidate.combinedSimilarity)) {
     Object.assign(candidate, match);
@@ -124,8 +124,10 @@ function addCandidate(map, recordingId, row, match) {
   return candidate;
 }
 
-function addRelease(candidate, releaseMbid) {
-  if (releaseMbid) candidate.releases.add(releaseMbid);
+function addRelease(candidate, releaseMbid, releaseName = null) {
+  if (releaseMbid && (!candidate.releases.has(releaseMbid) || (!candidate.releases.get(releaseMbid) && releaseName))) {
+    candidate.releases.set(releaseMbid, releaseName || null);
+  }
 }
 
 async function* rowsWithHeader(readable, label) {
@@ -229,7 +231,7 @@ async function collectCatalogCandidates(readable, tracks) {
       const state = states[inputIndex];
       if (state.title === title || state.exact.has(recordingId)) continue;
       if (state.fuzzy.has(recordingId)) {
-        addRelease(state.fuzzy.get(recordingId), row.release_mbid);
+        addRelease(state.fuzzy.get(recordingId), row.release_mbid, row.release_name);
         continue;
       }
       const artistSimilarity = sequenceMatcherRatio(state.artist, artist);
@@ -296,16 +298,21 @@ function canonicalizeCandidates(states, recordingRedirects, releaseRedirects) {
           target.combinedSimilarity = source.combinedSimilarity ?? null;
         }
 
-        const releaseIds = new Set(source.releases);
+        const releaseIds = new Map(source.releases);
         if (recordingRedirect?.canonical_release_mbid) {
-          releaseIds.add(recordingRedirect.canonical_release_mbid);
+          const knownName = [...releaseIds.values()].find(Boolean) ?? null;
+          if (!releaseIds.has(recordingRedirect.canonical_release_mbid)) {
+            releaseIds.set(recordingRedirect.canonical_release_mbid, knownName);
+          }
         }
-        for (const sourceReleaseMbid of releaseIds) {
+        for (const [sourceReleaseMbid, releaseName] of releaseIds) {
           const redirect = releaseRedirects.get(sourceReleaseMbid);
           const releaseMbid = redirect?.canonical_release_mbid || sourceReleaseMbid;
+          const previousRelease = target.releases.get(releaseMbid);
           target.releases.set(releaseMbid, {
             releaseMbid,
-            releaseGroupMbid: redirect?.release_group_mbid || null
+            releaseName: previousRelease?.releaseName || releaseName || null,
+            releaseGroupMbid: redirect?.release_group_mbid || previousRelease?.releaseGroupMbid || null
           });
         }
       }
@@ -364,7 +371,7 @@ export async function matchCanonicalStreams({
     for (const map of [state.exact, state.titleOnly, state.fuzzy]) {
       for (const candidate of map.values()) {
         candidateIds.add(candidate.sourceRecordingMbid);
-        for (const release of candidate.releases) candidateReleaseIds.add(release);
+        for (const release of candidate.releases.keys()) candidateReleaseIds.add(release);
       }
     }
   }
