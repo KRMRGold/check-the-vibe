@@ -100,7 +100,7 @@ Research sources:
 ## M4 native Zstandard/TAR reader — runtime verified; member streaming implemented
 
 - Implemented on `main` in `src/main/musicbrainz/canonical-archive.js`: native `node:zlib` Zstandard decompression, bounded-memory TAR header parsing, member listing, and `openZstdTarMember(archivePath, memberName)` for streaming one selected regular-file member without extracting it.
-- Six synthetic Zstandard/TAR unit tests cover member listing, USTAR prefix paths, invalid header checksums, truncated archives, selected-member streaming, and missing-member errors.
+- Seven synthetic Zstandard/TAR unit tests cover member listing, USTAR prefix paths, invalid header checksums, truncated archives, selected-member streaming, and missing-member errors.
 - Node documents `createZstdDecompress` and `createZstdCompress` as experimental streaming APIs introduced in Node 22.15. The project engine floor is Node 22.17.
 - User verified `npm run test:unit`: **43 passed, 0 failed**. User verified `npm run test:zstd-electron`: **PASS — Electron embedded Node 24.22.2 native Zstandard stream**.
 - The selected-member stream is tested against a synthetic compressed TAR. Full canonical snapshot compatibility and end-to-end matcher consumption are not yet verified. PAX/GNU long-name TAR extensions remain unsupported pending confirmation they are absent from the supplied archive.
