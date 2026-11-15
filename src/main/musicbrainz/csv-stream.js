@@ -34,8 +34,8 @@ export async function* parseCsvStream(readable) {
       else if (character === ",") {
         row.push(cell);
         cell = "";
-      } else if (character === "\\n") {
-        row.push(cell.replace(/\\r$/u, ""));
+      } else if (character === "\n") {
+        row.push(cell.replace(/\r$/u, ""));
         if (row.some((value) => value.length)) yield row;
         row = [];
         cell = "";
@@ -53,7 +53,7 @@ export async function* parseCsvStream(readable) {
     pendingQuote = false;
   }
   if (cell.length || row.length) {
-    row.push(cell.replace(/\\r$/u, ""));
+    row.push(cell.replace(/\r$/u, ""));
     if (row.some((value) => value.length)) yield row;
   }
 }
