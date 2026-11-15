@@ -9,6 +9,7 @@ const DeckInput = z.object({
 }).strict();
 const UpdateDeckInput = DeckInput.extend({ id: DeckId }).strict();
 const DeckIdInput = z.object({ id: DeckId }).strict();
+const EmptyInput = z.object({}).strict();
 const AddEntryInput = z.object({ deckId: DeckId, songId: DeckId }).strict();
 const RemoveEntryInput = z.object({ deckId: DeckId, entryId: DeckId }).strict();
 const ReorderEntriesInput = z.object({
@@ -31,7 +32,7 @@ export function registerDeckIpc(db) {
   const decks = createDeckRepository(db);
 
   ipcMain.handle("decks:list", async (_event, payload) => {
-    if (payload !== undefined && (payload === null || typeof payload !== "object" || Object.keys(payload).length)) {
+    if (!EmptyInput.safeParse(payload ?? {}).success) {
       return failure("INVALID_PAYLOAD", "The deck query is invalid.");
     }
     try { return { ok: true, data: { decks: decks.listDecks() } }; }
