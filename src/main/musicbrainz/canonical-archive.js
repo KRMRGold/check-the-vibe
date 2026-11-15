@@ -1,4 +1,5 @@
 import { createReadStream } from "node:fs";
+import { stat } from "node:fs/promises";
 import { PassThrough, Readable } from "node:stream";
 import { createZstdDecompress } from "node:zlib";
 
@@ -89,14 +90,53 @@ function assertZstdAvailable() {
   }
 }
 
-async function* decompressedTarChunks(archivePath) {
+function createAbortError() {
+  const error = new Error("Canonical archive processing was cancelled.");
+  error.name = "AbortError";
+  error.code = "ABORT_ERR";
+  return error;
+}
+
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw createAbortError();
+}
+
+async function* decompressedTarChunks(archivePath, {
+  signal,
+  onProgress,
+  phase = "archive_index"
+} = {}) {
+  throwIfAborted(signal);
+  const totalBytes = (await stat(archivePath)).size;
+  throwIfAborted(signal);
   const source = createReadStream(archivePath);
   const decompressed = createZstdDecompress();
+  let reportedBytes = 0;
+  const reportInterval = 16 * 1024 * 1024;
+  const onAbort = () => {
+    const error = createAbortError();
+    source.destroy(error);
+    decompressed.destroy(error);
+  };
+  signal?.addEventListener("abort", onAbort, { once: true });
   source.on("error", (error) => decompressed.destroy(error));
   source.pipe(decompressed);
   try {
-    for await (const chunk of decompressed) yield chunk;
+    throwIfAborted(signal);
+    for await (const chunk of decompressed) {
+      throwIfAborted(signal);
+      const bytesProcessed = source.bytesRead;
+      if (onProgress && bytesProcessed - reportedBytes >= reportInterval) {
+        reportedBytes = bytesProcessed;
+        onProgress({ phase, bytesProcessed, totalBytes });
+      }
+      yield chunk;
+    }
+    if (onProgress && source.bytesRead !== reportedBytes) {
+      onProgress({ phase, bytesProcessed: source.bytesRead, totalBytes });
+    }
   } finally {
+    signal?.removeEventListener("abort", onAbort);
     source.destroy();
     decompressed.destroy();
   }
@@ -107,7 +147,7 @@ async function* decompressedTarChunks(archivePath) {
  * Payload bytes are discarded as they stream past; archive members are never extracted.
  * PAX path metadata and GNU long-name records are interpreted without extracting them.
  */
-export async function listZstdTarMembers(archivePath) {
+export async function listZstdTarMembers(archivePath, { signal, onProgress } = {}) {
   assertZstdAvailable();
   const members = [];
   let pending = Buffer.alloc(0);
@@ -121,7 +161,8 @@ export async function listZstdTarMembers(archivePath) {
   let localPax = {};
   let longName = null;
 
-  for await (const chunk of decompressedTarChunks(archivePath)) {
+  for await (const chunk of decompressedTarChunks(archivePath, { signal, onProgress, phase: "archive_index" })) {
+    throwIfAborted(signal);
     pending = pending.length ? Buffer.concat([pending, chunk]) : chunk;
     while (true) {
       if (reachedEnd) { pending = Buffer.alloc(0); break; }
@@ -185,7 +226,7 @@ export async function listZstdTarMembers(archivePath) {
   return members;
 }
 
-async function* selectedTarMemberChunks(archivePath, memberName) {
+async function* selectedTarMemberChunks(archivePath, memberName, signal) {
   let pending = Buffer.alloc(0);
   let payloadRemaining = 0;
   let currentMemberSize = 0;
@@ -199,7 +240,8 @@ async function* selectedTarMemberChunks(archivePath, memberName) {
   let localPax = {};
   let longName = null;
 
-  for await (const chunk of decompressedTarChunks(archivePath)) {
+  for await (const chunk of decompressedTarChunks(archivePath, { signal })) {
+    throwIfAborted(signal);
     pending = pending.length ? Buffer.concat([pending, chunk]) : chunk;
     while (true) {
       if (payloadRemaining > 0) {
@@ -274,7 +316,7 @@ async function* selectedTarMemberChunks(archivePath, memberName) {
 }
 
 
-async function* selectedTarMembersChunks(archivePath, memberNames) {
+async function* selectedTarMembersChunks(archivePath, memberNames, signal) {
   const selectedNames = new Set(memberNames);
   const found = new Set();
   let pending = Buffer.alloc(0);
@@ -289,7 +331,8 @@ async function* selectedTarMembersChunks(archivePath, memberNames) {
   let localPax = {};
   let longName = null;
 
-  for await (const chunk of decompressedTarChunks(archivePath)) {
+  for await (const chunk of decompressedTarChunks(archivePath, { signal })) {
+    throwIfAborted(signal);
     pending = pending.length ? Buffer.concat([pending, chunk]) : chunk;
     while (true) {
       if (payloadRemaining > 0) {
@@ -397,7 +440,7 @@ function writeWithBackpressure(stream, chunk) {
  * Opens several selected regular-file members during one archive traversal.
  * Each returned stream applies backpressure to the shared TAR reader.
  */
-export function openZstdTarMembers(archivePath, memberNames) {
+export function openZstdTarMembers(archivePath, memberNames, { signal } = {}) {
   if (typeof archivePath !== "string" || !archivePath) throw new TypeError("An archive path is required.");
   if (!Array.isArray(memberNames) || memberNames.length < 1 ||
       memberNames.some((name) => typeof name !== "string" || !name) ||
@@ -415,7 +458,7 @@ export function openZstdTarMembers(archivePath, memberNames) {
   }));
   const done = (async () => {
     try {
-      for await (const event of selectedTarMembersChunks(archivePath, memberNames)) {
+      for await (const event of selectedTarMembersChunks(archivePath, memberNames, signal)) {
         const stream = streams.get(event.memberName);
         if (event.chunk === null) stream.end();
         else await writeWithBackpressure(stream, event.chunk);
@@ -441,9 +484,9 @@ export function openZstdTarMembers(archivePath, memberNames) {
   };
 }
 
-export function openZstdTarMember(archivePath, memberName) {
+export function openZstdTarMember(archivePath, memberName, { signal } = {}) {
   if (typeof archivePath !== "string" || !archivePath) throw new TypeError("An archive path is required.");
   if (typeof memberName !== "string" || !memberName) throw new TypeError("A TAR member name is required.");
   assertZstdAvailable();
-  return Readable.from(selectedTarMemberChunks(archivePath, memberName), { objectMode: false });
+  return Readable.from(selectedTarMemberChunks(archivePath, memberName, signal), { objectMode: false });
 }
