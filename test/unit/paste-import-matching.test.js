@@ -140,3 +140,26 @@ test("rejects reprocessing a completed paste job", async (t) => {
     /PASTE_IMPORT_ALREADY_DONE/
   );
 });
+
+
+test("candidate-limit overflow is persisted as needs-review and never auto-confirmed", async (t) => {
+  const { db, imports, matching } = await setup(t, async () => ({
+    snapshotId: "snapshot-limited",
+    results: [{
+      matchStatus: "candidate_limit_exceeded",
+      exactMatchCount: null,
+      titleOnlyCandidateCount: 0,
+      candidateLimitType: "exact",
+      candidates: [candidate()]
+    }]
+  }));
+  const created = imports.create("Artist — Song");
+  const job = await matching.process(created.id, { archivePath: "/snapshot.tar.zst" });
+  const [item] = job.items;
+
+  assert.equal(item.state, "needs_review");
+  assert.equal(item.matched_recording_mbid, null);
+  assert.equal(item.candidates.matchStatus, "candidate_limit_exceeded");
+  assert.equal(item.candidates.candidateLimitType, "exact");
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM songs").get().count, 0);
+});
