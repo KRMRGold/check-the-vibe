@@ -6,6 +6,7 @@ const MATCH_STATES = new Set([
   "fuzzy_candidates",
   "title_only_candidate",
   "multiple_title_only_candidates",
+  "candidate_limit_exceeded",
   "no_match"
 ]);
 
@@ -120,6 +121,7 @@ export function createPasteImportMatchingRepository(db, {
           matchStatus: result.matchStatus,
           exactMatchCount: result.exactMatchCount,
           titleOnlyCandidateCount: result.titleOnlyCandidateCount,
+          candidateLimitType: result.candidateLimitType ?? null,
           candidates: result.candidates
         }),
         matchedRecordingMbid,
