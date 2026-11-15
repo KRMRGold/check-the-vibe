@@ -95,6 +95,7 @@ test("exact matches take priority and recording redirects deduplicate aliases wh
     "canonical-release-a", "release-b", "release-c"
   ]);
   assert.equal(result.candidates[0].releases.find((release) => release.releaseMbid === "release-c").releaseGroupMbid, "group-b");
+  assert.equal(result.candidates[0].releases.find((release) => release.releaseMbid === "release-c").releaseName, "Release");
 });
 
 test("fuzzy candidates use artist, title, and geometric combined thresholds", async () => {
