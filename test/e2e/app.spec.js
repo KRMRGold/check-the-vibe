@@ -68,7 +68,7 @@ test("desktop library creates and searches a local song with isolated renderer",
     await expect(window.locator(".deck-entry")).toHaveCount(2);
     await window.locator("#library-nav").click();
     await window.locator("#library-search").fill("Glass Garden");
-    await expect(window.locator(".song-title")).toHaveText("Glass Garden");
+    await expect(window.locator("#song-list .song-title")).toHaveText("Glass Garden");
   } finally {
     if (app) await app.close();
     await rm(userData, { recursive: true, force: true });
