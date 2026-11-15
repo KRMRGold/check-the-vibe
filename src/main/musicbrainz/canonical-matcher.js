@@ -53,6 +53,15 @@ function sequenceMatchingBlocks(a, b) {
     }
 
     if (bestSize) {
+      while (bestI > alo && bestJ > blo && a[bestI - 1] === b[bestJ - 1]) {
+        bestI -= 1;
+        bestJ -= 1;
+        bestSize += 1;
+      }
+      while (bestI + bestSize < ahi && bestJ + bestSize < bhi &&
+          a[bestI + bestSize] === b[bestJ + bestSize]) {
+        bestSize += 1;
+      }
       matches.push([bestI, bestJ, bestSize]);
       if (alo < bestI && blo < bestJ) pending.push([alo, bestI, blo, bestJ]);
       if (bestI + bestSize < ahi && bestJ + bestSize < bhi) {
