@@ -2,7 +2,7 @@
 
 A desktop-first music collection and playlist app where songs are cards, playlists are decks, and group listening can optionally become a music game.
 
-**Current stage:** M3 — Library and decks. M0, M1 and M2 are accepted; the M3 implementation and current test suite are verified, with milestone acceptance pending.
+**Current stage:** M4 — Identification and pasted lists. M0–M3 are accepted.
 
 ## Requirements
 
@@ -46,7 +46,7 @@ CTV_PROVIDER_MODE defaults to fixture. Set it to live only when a later mileston
 
 ## Current implementation boundary
 
-M0 establishes the Electron shell, secure renderer boundary, loopback content server, SQLite schema and migration runner, and automated test/packaging configuration. M3 includes the manual local song library and verified deck management: deck CRUD, repeated song occurrences, ordering, and a renderer workflow. The latest library UX slice adds tap-tempo BPM entry, tag/BPM/energy filters, and BPM/energy/date-added sorting. The user verified the complete suite on Windows: 39 unit tests and 1 Electron E2E test passed. M3 milestone acceptance remains pending. Import, playback, enrichment, and game features remain future milestones.
+M0 establishes the Electron shell, secure renderer boundary, loopback content server, SQLite schema and migration runner, and automated test/packaging configuration. M3 includes the manual local song library and verified deck management: deck CRUD, repeated song occurrences, ordering, and a renderer workflow. The latest library UX slice adds tap-tempo BPM entry, tag/BPM/energy filters, and BPM/energy/date-added sorting. The user verified the complete suite on Windows: 39 unit tests and 1 Electron E2E test passed. M3 is accepted; M4 design refinement is next. Import, playback, enrichment, and game features remain future milestones.
 
 ## M2: Local FMA metadata comparison
 
