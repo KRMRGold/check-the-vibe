@@ -42,6 +42,7 @@ test("creates a paste job without video IDs and preserves every source line", as
   const { db, repository } = await setup(t);
   const job = repository.create("Artist — Title\n\nmalformed");
   assert.equal(job.provider, "paste");
+  assert.equal(job.status, "running");
   assert.equal(job.total, 3);
   const stored = db.prepare("SELECT position, video_id, source_line, parse_error, state FROM import_items WHERE job_id = ? ORDER BY position").all(job.id);
   assert.deepEqual(stored, [
