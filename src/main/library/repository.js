@@ -76,7 +76,10 @@ export function createLibraryRepository(db) {
       const sortSql = {
         recent: "s.updated_at DESC, s.title COLLATE NOCASE ASC",
         title: "s.title COLLATE NOCASE ASC, s.artist COLLATE NOCASE ASC",
-        artist: "s.artist COLLATE NOCASE ASC, s.title COLLATE NOCASE ASC"
+        artist: "s.artist COLLATE NOCASE ASC, s.title COLLATE NOCASE ASC",
+        added: "s.created_at DESC, s.title COLLATE NOCASE ASC",
+        bpm: "bpm IS NULL ASC, bpm ASC, s.title COLLATE NOCASE ASC",
+        energy: "energy IS NULL ASC, energy ASC, s.title COLLATE NOCASE ASC"
       }[sort] ?? "s.updated_at DESC";
       let rows;
       const clean = query.trim().replaceAll('"', '""').split(/\s+/).filter(Boolean);
