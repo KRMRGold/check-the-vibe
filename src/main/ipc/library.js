@@ -16,7 +16,7 @@ const SongInput = z.object({
 
 const ListInput = z.object({
   query: z.string().max(200).default(""),
-  sort: z.enum(["recent", "title", "artist"]).default("recent")
+  sort: z.enum(["recent", "added", "title", "artist", "bpm", "energy"]).default("recent")
 }).strict();
 
 function failure(code, message) {
