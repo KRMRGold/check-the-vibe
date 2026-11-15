@@ -2,7 +2,7 @@
 
 A desktop-first music collection and playlist app where songs are cards, playlists are decks, and group listening can optionally become a music game.
 
-**Current stage:** M2 — Data-provider feasibility research. M0 and M1 are accepted; M2 remains in investigation.
+**Current stage:** M3 — Library and decks. M0, M1 and M2 are accepted; M3 is in progress.
 
 ## Requirements
 
@@ -46,7 +46,7 @@ CTV_PROVIDER_MODE defaults to fixture. Set it to live only when a later mileston
 
 ## Current implementation boundary
 
-M0 establishes the Electron shell, secure renderer boundary, loopback content server, SQLite schema and migration runner, and automated test/packaging configuration. Library, deck, import, playback, enrichment, and game features are implemented in later milestones.
+M0 establishes the Electron shell, secure renderer boundary, loopback content server, SQLite schema and migration runner, and automated test/packaging configuration. M3 now includes the manual local song library and an implemented-but-not-yet-verified deck repository/IPC foundation. Renderer deck management and later import, playback, enrichment, and game features remain in progress or future milestones.
 
 ## M2: Local FMA metadata comparison
 
