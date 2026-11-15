@@ -2,7 +2,7 @@
 
 A desktop-first music collection and playlist app where songs are cards, playlists are decks, and group listening can optionally become a music game.
 
-**Current stage:** M4 — Identification and pasted lists. M0–M3 are accepted.
+**Current stage:** M4 — Local-catalog identification and pasted lists. M0–M3 are accepted.
 
 ## Requirements
 
