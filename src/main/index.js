@@ -7,6 +7,7 @@ import { runMigrations } from "./db/migrate.js";
 import { startContentServer } from "./contentServer.js";
 import { registerAppIpc } from "./ipc/app.js";
 import { registerLibraryIpc } from "./ipc/library.js";
+import { registerDeckIpc } from "./ipc/decks.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const rendererDirectory = join(here, "../renderer");
@@ -82,6 +83,7 @@ app.whenReady().then(async () => {
   }
   registerAppIpc();
   registerLibraryIpc(database);
+  registerDeckIpc(database);
   await createMainWindow();
 }).catch((error) => {
   console.error("Application startup failed:", error);
