@@ -187,3 +187,10 @@ This is an architectural decision only. It does not mean federation, a provider 
 - Initial implementation is deliberately limited to listing TAR members while discarding payload bytes. It uses bounded chunk buffering and validates header checksums; it does not extract the multi-gigabyte CSV.
 - A separate Electron embedded-Node smoke command was added because passing Node CLI unit tests alone does not prove the Electron runtime exposes the same API.
 - This is a spike, not yet accepted runtime support: user-side unit and Electron smoke tests remain pending. The next archive-reader slice must expose the selected CSV member as a stream without writing it to disk. Current parser explicitly rejects PAX/GNU long-name extension headers; verify the supplied archive does not use them before relying on the reader for the full dump.
+
+## Paste imports share the import-job model
+
+- Decision: pasted Artist — Title rows use the existing `import_jobs` and `import_items` infrastructure with `provider = 'paste'`, rather than a parallel paste-import subsystem.
+- Rationale: reuse import history, ordered item storage, and review-state infrastructure while keeping paste parsing/matching behavior distinct from YouTube playlist imports.
+- The import item schema supports both sources: `video_id` is nullable and `source_line` retains the original pasted line. Parsing errors are recorded rather than silently dropping input.
+- Canonical MusicBrainz recording and release identities are stored separately from editable song fields, with an explicit many-to-many recording/release association.
