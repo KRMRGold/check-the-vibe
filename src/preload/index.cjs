@@ -5,7 +5,8 @@ contextBridge.exposeInMainWorld("ctv", Object.freeze({
   library: Object.freeze({
     list: (payload) => ipcRenderer.invoke("library:list", payload),
     saveSong: (payload) => ipcRenderer.invoke("library:save-song", payload),
-    importPaste: (payload) => ipcRenderer.invoke("library:import-paste", payload)
+    importPaste: (payload) => ipcRenderer.invoke("library:import-paste", payload),
+    matchPaste: (payload) => ipcRenderer.invoke("library:match-paste", payload)
   }),
   decks: Object.freeze({
     list: () => ipcRenderer.invoke("decks:list"),
