@@ -245,7 +245,7 @@ test("multi-member streaming reports a missing requested member", async () => {
     };
     const consumers = Promise.all([...selected.streams.values()].map(consume));
     const consumerFailure = assert.rejects(consumers);
-    await assert.rejects(selected.done, /snapshot\\/missing\\.csv" was not found/);
+    await assert.rejects(selected.done, /snapshot\/missing\.csv" was not found/);
     await consumerFailure;
   });
 });
