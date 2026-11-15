@@ -15,7 +15,8 @@
     "test:unit": "node --test test/unit/*.test.js",
     "test:e2e": "playwright test",
     "package:smoke": "electron-forge package",
-    "compare:fma": "node scripts/compare-fma.js"
+    "compare:fma": "node scripts/compare-fma.js",
+    "test:zstd-electron": "node scripts/check-electron-zstd.js"
   },
   "dependencies": {
     "better-sqlite3": "13.0.3",
