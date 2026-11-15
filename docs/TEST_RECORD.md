@@ -97,12 +97,11 @@ Research sources:
 - ListenBrainz dumps: https://metabrainz.org/datasets/postgres-dumps
 - Apple iTunes Search API: https://performance-partners.apple.com/search-api
 
-## M4 native Zstandard/TAR reader — runtime verified; member streaming implemented
-
-- Implemented on `main` in `src/main/musicbrainz/canonical-archive.js`: native `node:zlib` Zstandard decompression, bounded-memory TAR header parsing, member listing, and `openZstdTarMember(archivePath, memberName)` for streaming one selected regular-file member without extracting it.
-- Seven synthetic Zstandard/TAR unit tests cover member listing, USTAR prefix paths, invalid header checksums, truncated archives, selected-member streaming, and missing-member errors.
-- Node documents `createZstdDecompress` and `createZstdCompress` as experimental streaming APIs introduced in Node 22.15. The project engine floor is Node 22.17.
-- User verified `npm run test:unit`: **43 passed, 0 failed**. User verified `npm run test:zstd-electron`: **PASS — Electron embedded Node 24.22.2 native Zstandard stream**.
+## M4 native Zstandard/TAR reader — extension support implemented; verification pending
+- Implemented on `main` in `src/main/musicbrainz/canonical-archive.js`: native `node:zlib` Zstandard decompression, bounded-memory TAR parsing, member listing, and `openZstdTarMember(archivePath, memberName)` for streaming one selected regular-file member without extracting it.
+- The user verified `npm run test:unit`: **46 passed, 0 failed**. The user verified `npm run test:zstd-electron`: **PASS — Electron embedded Node 24.22.2 native Zstandard stream**. These results predate the PAX/GNU extension changes below.
+- The user's actual archive listing exposed a TAR extension record that the initial reader rejected. The reader now supports PAX local/global path metadata and GNU long-name records, including UTF-8 paths; extension metadata is capped at 1 MiB. Two new synthetic tests cover PAX and GNU long-name listing plus selected-member streaming.
+- The updated extension support and its new tests have **not yet been run by the user**. The actual snapshot has not yet been successfully listed through this reader; full archive compatibility and end-to-end matcher consumption remain unverified.
 - The selected-member stream is tested against a synthetic compressed TAR. Full canonical snapshot compatibility and end-to-end matcher consumption are not yet verified. PAX/GNU long-name TAR extensions remain unsupported pending confirmation they are absent from the supplied archive.
 - Next step: consume the canonical CSV member through the existing streaming CSV parser and port the local canonical matcher, preserving redirect resolution and bounded candidate memory.
 
