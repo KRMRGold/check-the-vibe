@@ -42,6 +42,33 @@ test("desktop library creates and searches a local song with isolated renderer",
     const invalid = await window.evaluate(() => window.ctv.ping("invalid"));
     expect(invalid.ok).toBe(false);
     expect(invalid.error.code).toBe("INVALID_PAYLOAD");
+
+    await window.locator("#library-search").fill("");
+    await window.locator("#add-song-button").click();
+    await window.locator('[name="title"]').fill("Moonlit Arcade");
+    await window.locator('[name="artist"]').fill("Static Bloom");
+    await window.locator("#song-form button[type=submit]").click();
+    await window.locator("#create-deck-button").click();
+    await window.locator('#deck-form [name="name"]').fill("Night drives");
+    await window.locator('#deck-form [name="description"]').fill("After dark");
+    await window.locator("#deck-form button[type=submit]").click();
+    await expect(window.locator("#page-title")).toHaveText("Night drives.");
+    await window.locator("#deck-song-search").fill("Glass Garden");
+    const addGlass = window.getByRole("button", { name: "Add Glass Garden to deck" });
+    await addGlass.click();
+    await addGlass.click();
+    await window.locator("#deck-song-search").fill("Moonlit Arcade");
+    await window.getByRole("button", { name: "Add Moonlit Arcade to deck" }).click();
+    await expect(window.locator(".deck-entry")).toHaveCount(3);
+    await window.getByRole("button", { name: "Move Moonlit Arcade up" }).click();
+    await expect(window.locator(".deck-entry .song-title").allTextContents()).resolves.toEqual([
+      "Glass Garden", "Moonlit Arcade", "Glass Garden"
+    ]);
+    await window.locator(".deck-entry").first().getByRole("button", { name: "Remove Glass Garden from deck" }).click();
+    await expect(window.locator(".deck-entry")).toHaveCount(2);
+    await window.locator("#library-nav").click();
+    await window.locator("#library-search").fill("Glass Garden");
+    await expect(window.locator(".song-title")).toHaveText("Glass Garden");
   } finally {
     if (app) await app.close();
     await rm(userData, { recursive: true, force: true });
