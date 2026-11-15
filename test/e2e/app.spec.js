@@ -25,7 +25,19 @@ test("desktop library creates and searches a local song with isolated renderer",
     await window.locator('[name="title"]').fill("Glass Garden");
     await window.locator('[name="artist"]').fill("Mira");
     await window.locator('[name="tags"]').fill("dream pop, night drive");
-    await window.locator('[name="bpm"]').fill("118");
+    await window.evaluate(() => {
+      const originalNow = Date.now;
+      let now = 10000;
+      Date.now = () => now;
+      const tap = document.querySelector("#tap-tempo-button");
+      tap.click();
+      now += 500;
+      tap.click();
+      now += 500;
+      tap.click();
+      Date.now = originalNow;
+    });
+    await expect(window.locator("#bpm-input")).toHaveValue("120");
     await window.locator("#song-form button[type=submit]").click();
     await expect(window.locator(".song-title")).toHaveText("Glass Garden");
     await expect(window.locator(".song-artist")).toContainText("Mira");
@@ -67,8 +79,21 @@ test("desktop library creates and searches a local song with isolated renderer",
     await window.locator(".deck-entry").first().getByRole("button", { name: "Remove Glass Garden from deck" }).click();
     await expect(window.locator(".deck-entry")).toHaveCount(2);
     await window.locator("#library-nav").click();
-    await window.locator("#library-search").fill("Glass Garden");
+    await window.locator("#library-search").fill("");
+    await window.locator("#filter-tag").fill("dream pop");
+    await expect(window.locator("#song-count")).toHaveText("1 of 2 songs");
     await expect(window.locator("#song-list .song-title")).toHaveText("Glass Garden");
+    await window.locator("#filter-bpm-min").fill("121");
+    await expect(window.locator(".empty-state h2")).toHaveText("No matches yet.");
+    await window.locator("#filter-bpm-min").fill("110");
+    await expect(window.locator("#song-list .song-title")).toHaveText("Glass Garden");
+    await window.locator('[data-view="grid"]').click();
+    await expect(window.locator("#song-list")).toHaveClass(/song-grid/);
+    await expect(window.locator("#song-list .song-title")).toHaveText("Glass Garden");
+    await window.locator('[data-view="list"]').click();
+    await expect(window.locator("#song-list")).toHaveClass(/song-list/);
+    await window.locator("#clear-library-filters").click();
+    await expect(window.locator("#song-count")).toHaveText("2 songs");
   } finally {
     if (app) await app.close();
     await rm(userData, { recursive: true, force: true });
