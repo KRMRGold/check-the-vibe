@@ -218,3 +218,8 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - Added `test/unit/canonical-matcher.test.js` for normalization, similarity ratios, thresholds, exact-match precedence, fuzzy candidates, title-only candidates, ambiguous exact matches, missing recording IDs, recording alias redirects, and multiple release associations.
 - **Matcher test status: NOT RUN IN THE USER'S LOCAL ENVIRONMENT.** The earlier 57/57 result does not include these newly added tests. Run `npm run test:unit` after pulling the matcher commits.
 - **Remaining M4 work:** connect matching to paste-import job processing; persist canonical metadata and candidates; complete job states only after matching; implement review/confirmation and library song creation; add the review UI. No full canonical archive scan or end-to-end archive matcher run has been performed for this implementation.
+
+
+## M4 paste matching persistence — implementation awaiting local verification
+
+Added a matching service and database migration for processing staged paste imports. Unit fixtures cover persistence of snapshot provenance and candidate metadata, exact-single automatic identity selection, fuzzy review state, no-match and malformed-row accounting, release associations, retry after matcher failure, and the separation between canonical identity matching and library song creation. The service uses an injected archive matcher in tests; these tests have not yet been run by the user. No full MusicBrainz snapshot match has been run. The archive wrapper currently traverses the compressed archive three times, so full-snapshot execution remains deferred pending archive-pass optimization.
