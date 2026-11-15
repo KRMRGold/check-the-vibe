@@ -41,7 +41,7 @@ export function createDeckRepository(db) {
     return deleted;
   });
   const listEntryRows = db.prepare(`
-    SELECT de.id AS entry_id, de.deck_id, de.song_id, de.position,
+    SELECT de.id AS id, de.deck_id, de.song_id, de.position,
            de.notes, de.added_at
     FROM deck_entries de
     WHERE de.deck_id = ?
