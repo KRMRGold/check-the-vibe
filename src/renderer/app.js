@@ -304,6 +304,8 @@ async function loadDeckCandidates() {
         return showDeckError(added.error.message);
       }
       await loadDeck();
+      add.disabled = false;
+      add.textContent = "Add again";
     });
   }
 }
