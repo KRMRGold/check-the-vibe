@@ -284,3 +284,20 @@ test("multi-member archive streaming can be cancelled", async () => {
     await assert.rejects(consumers);
   });
 });
+
+
+test("reports compressed archive-index progress", async () => {
+  const archive = makeArchive([
+    tarMember("snapshot/TIMESTAMP", "2026-11-03"),
+    tarMember("snapshot/canonical/data.csv", "id,name\n1,example\n")
+  ]);
+  await withArchive(archive, async (archivePath) => {
+    const progress = [];
+    await listZstdTarMembers(archivePath, {
+      onProgress: (entry) => progress.push(entry)
+    });
+    assert.equal(progress.at(-1).phase, "archive_index");
+    assert.equal(progress.at(-1).bytesProcessed, progress.at(-1).totalBytes);
+    assert.ok(progress.at(-1).totalBytes > 0);
+  });
+});
