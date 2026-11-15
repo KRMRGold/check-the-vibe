@@ -22,14 +22,14 @@ test("schema creates required tables and indexes", async () => {
       "provider_records", "decks", "deck_entries", "import_jobs", "import_items",
       "musicbrainz_recordings", "musicbrainz_releases", "musicbrainz_recording_releases",
       "matches", "match_events", "quota_usage", "settings", "songs_fts"
-    ]) assert.ok(tables.includes(name), \`Missing table: \${name}\`);
+    ]) assert.ok(tables.includes(name), "Missing table: " + name);
 
     const indexes = db.prepare("SELECT name FROM sqlite_master WHERE type='index'").all().map((row) => row.name);
     for (const name of [
       "songs_mbid", "songs_isrc", "song_tags_lookup", "song_links_one_primary",
       "deck_entries_pos", "import_items_job_pos", "musicbrainz_recording_releases_release",
       "match_events_match_seq"
-    ]) assert.ok(indexes.includes(name), \`Missing index: \${name}\`);
+    ]) assert.ok(indexes.includes(name), "Missing index: " + name);
 
     const itemColumns = db.prepare("PRAGMA table_info(import_items)").all();
     assert.equal(itemColumns.find((column) => column.name === "video_id").notnull, 0);
