@@ -116,7 +116,7 @@ function addCandidate(map, recordingId, row, match) {
     };
     map.set(recordingId, candidate);
   }
-  if (row.release_mbid) candidate.releases.set(row.release_mbid, row.release_name || null);
+  if (row.release_mbid) addRelease(candidate, row.release_mbid, row.release_name);
   if (match.combinedSimilarity != null &&
       (candidate.combinedSimilarity == null || match.combinedSimilarity > candidate.combinedSimilarity)) {
     Object.assign(candidate, match);
@@ -300,9 +300,8 @@ function canonicalizeCandidates(states, recordingRedirects, releaseRedirects) {
 
         const releaseIds = new Map(source.releases);
         if (recordingRedirect?.canonical_release_mbid) {
-          const knownName = [...releaseIds.values()].find(Boolean) ?? null;
           if (!releaseIds.has(recordingRedirect.canonical_release_mbid)) {
-            releaseIds.set(recordingRedirect.canonical_release_mbid, knownName);
+            releaseIds.set(recordingRedirect.canonical_release_mbid, null);
           }
         }
         for (const [sourceReleaseMbid, releaseName] of releaseIds) {
