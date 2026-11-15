@@ -76,7 +76,7 @@ The user also downloaded the 85 MB AcousticBrainz high-level sample archive unde
 
 ## M3 — Library and decks (in progress)
 
-M3 is the active milestone. Implement manual song add/edit, user tags and user BPM/energy, deck CRUD, reusable songs across decks, ordered deck entries, list/card-grid views, and library search/sort/filter. Keep this milestone offline-first; do not block it on metadata providers.
+M3 is the active milestone. The first implementation slice is on branch `m3/library-foundation`: a manual local song library with add/edit, user tags, BPM and energy, SQLite persistence, FTS-backed search, title/artist/recent sorting, and list/card-grid views. Validated IPC is exposed through a narrow preload bridge. Unit and Electron E2E tests have been added but have not yet been run on the user's machine. Deck CRUD, deck entries/reordering, richer filters, and final M3 acceptance remain outstanding. Keep this milestone offline-first; do not block it on metadata providers.
 
 ## Deferred
 
