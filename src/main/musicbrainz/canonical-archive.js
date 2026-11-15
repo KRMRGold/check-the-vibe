@@ -406,7 +406,13 @@ export function openZstdTarMembers(archivePath, memberNames) {
   }
   assertZstdAvailable();
 
-  const streams = new Map(memberNames.map((name) => [name, new PassThrough()]));
+  const streams = new Map(memberNames.map((name) => {
+    const stream = new PassThrough();
+    // A later selected member may fail before its consumer starts; keep that error observable
+    // through the stream iterator without allowing an unhandled EventEmitter error.
+    stream.on("error", () => {});
+    return [name, stream];
+  }));
   const done = (async () => {
     try {
       for await (const event of selectedTarMembersChunks(archivePath, memberNames)) {
