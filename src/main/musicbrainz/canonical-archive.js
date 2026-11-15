@@ -58,6 +58,7 @@ export async function listZstdTarMembers(archivePath) {
   const members = [];
   let pending = Buffer.alloc(0);
   let payloadRemaining = 0;
+  let currentSize = 0;
   let paddingRemaining = 0;
   let reachedEnd = false;
 
