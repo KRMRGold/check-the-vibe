@@ -18,6 +18,7 @@ let decks = [];
 let selectedDeckId = null;
 let editingDeckId = null;
 let deckEntries = [];
+let deckCandidateRequest = 0;
 
 function showError(message = "") { formError.textContent = message; }
 function showDeckError(message = "") { deckFormError.textContent = message; }
@@ -275,8 +276,10 @@ async function removeEntry(entryId) {
 }
 
 async function loadDeckCandidates() {
+  const requestId = ++deckCandidateRequest;
   const target = $("#deck-song-results");
   const result = await window.ctv.library.list({ query: $("#deck-song-search").value, sort: "title" });
+  if (requestId !== deckCandidateRequest) return;
   if (!result.ok) {
     target.replaceChildren();
     addText(target, "p", "load-error", result.error.message);
