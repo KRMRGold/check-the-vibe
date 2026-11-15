@@ -103,8 +103,14 @@ test("retains malformed source rows as unavailable when the remaining tracks are
 });
 
 test("failed matching leaves staged rows untouched and the job retryable", async (t) => {
+  let attempts = 0;
   const { db, imports, matching } = await setup(t, async () => {
-    throw new Error("SNAPSHOT_READ_FAILED");
+    attempts += 1;
+    if (attempts === 1) throw new Error("SNAPSHOT_READ_FAILED");
+    return {
+      snapshotId: "snapshot-retry",
+      results: [{ matchStatus: "no_match", exactMatchCount: 0, titleOnlyCandidateCount: 0, candidates: [] }]
+    };
   });
   const created = imports.create("Artist — Song");
   await assert.rejects(
@@ -114,6 +120,11 @@ test("failed matching leaves staged rows untouched and the job retryable", async
   assert.equal(db.prepare("SELECT status FROM import_jobs WHERE id = ?").get(created.id).status, "failed");
   assert.equal(db.prepare("SELECT state FROM import_items WHERE job_id = ?").get(created.id).state, "pending");
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM musicbrainz_recordings").get().count, 0);
+
+  const retried = await matching.process(created.id, { archivePath: "/valid.tar.zst" });
+  assert.equal(retried.status, "done");
+  assert.equal(retried.snapshot_id, "snapshot-retry");
+  assert.equal(attempts, 2);
 });
 
 test("rejects reprocessing a completed paste job", async (t) => {
