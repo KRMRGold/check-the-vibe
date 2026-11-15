@@ -1,3 +1,5 @@
+import { createTapTempo } from "./tap-tempo.js";
+
 const $ = (selector) => document.querySelector(selector);
 const formPanel = $("#song-form-panel");
 const form = $("#song-form");
@@ -8,6 +10,9 @@ const searchInput = $("#library-search");
 const sortSelect = $("#library-sort");
 const energyInput = $("#energy");
 const energyValue = $("#energy-value");
+const bpmInput = $("#bpm-input");
+const tapTempoStatus = $("#tap-tempo-status");
+const tapTempo = createTapTempo();
 const deckFormPanel = $("#deck-form-panel");
 const deckForm = $("#deck-form");
 const deckFormError = $("#deck-form-error");
@@ -31,6 +36,8 @@ function setFormOpen(open) {
     formTitle.textContent = "Add a song";
     $("#save-song-button").textContent = "Save song";
     energyValue.textContent = "Not set";
+    tapTempo.reset();
+    tapTempoStatus.textContent = "Tap at a steady pace to set BPM.";
     showError();
   }
 }
@@ -114,6 +121,8 @@ function editSong(song) {
   form.elements.releaseYear.value = song.release_year ?? "";
   form.elements.durationSeconds.value = song.duration_ms ? Math.round(song.duration_ms / 1000) : "";
   form.elements.bpm.value = song.bpm ?? "";
+  tapTempo.reset();
+  tapTempoStatus.textContent = song.bpm ? "Tap to replace the saved BPM." : "Tap at a steady pace to set BPM.";
   form.elements.tags.value = song.tags.join(", ");
   if (song.energy === null) energyValue.textContent = "Not set";
   else {
@@ -142,20 +151,45 @@ function renderSong(song) {
   return article;
 }
 
+function activeLibraryFilters() {
+  return Boolean($("#filter-tag").value.trim() || $("#filter-bpm-min").value || $("#filter-bpm-max").value || $("#filter-energy-min").value || $("#filter-energy-max").value);
+}
+
+function visibleSongs() {
+  const tag = $("#filter-tag").value.trim().toLocaleLowerCase();
+  const bpmMin = readOptionalNumber($("#filter-bpm-min").value);
+  const bpmMax = readOptionalNumber($("#filter-bpm-max").value);
+  const energyMin = readOptionalNumber($("#filter-energy-min").value);
+  const energyMax = readOptionalNumber($("#filter-energy-max").value);
+  return songs.filter((song) => {
+    if (tag && !song.tags.some((value) => value.toLocaleLowerCase().includes(tag))) return false;
+    if (bpmMin !== null && (song.bpm === null || song.bpm < bpmMin)) return false;
+    if (bpmMax !== null && (song.bpm === null || song.bpm > bpmMax)) return false;
+    if (energyMin !== null && (song.energy === null || song.energy < energyMin)) return false;
+    if (energyMax !== null && (song.energy === null || song.energy > energyMax)) return false;
+    return true;
+  });
+}
+
 function renderSongs() {
-  $("#song-count").textContent = `${songs.length} ${songs.length === 1 ? "song" : "songs"}`;
+  const visible = visibleSongs();
+  const filtered = activeLibraryFilters();
+  $("#song-count").textContent = filtered
+    ? `${visible.length} of ${songs.length} songs`
+    : `${songs.length} ${songs.length === 1 ? "song" : "songs"}`;
   songList.className = view === "grid" ? "song-grid" : "song-list";
   songList.replaceChildren();
-  if (!songs.length) {
+  if (!visible.length) {
     const empty = document.createElement("div");
     empty.className = "empty-state";
     addText(empty, "span", "empty-symbol", "♫");
-    addText(empty, "h2", "", searchInput.value ? "No matches yet." : "Your library is waiting.");
-    addText(empty, "p", "", searchInput.value ? "Try another title, artist, or tag." : "Add a song to start building your collection.");
+    const hasQuery = Boolean(searchInput.value.trim());
+    addText(empty, "h2", "", hasQuery || filtered ? "No matches yet." : "Your library is waiting.");
+    addText(empty, "p", "", hasQuery || filtered ? "Try changing your search or filters." : "Add a song to start building your collection.");
     songList.append(empty);
     return;
   }
-  for (const song of songs) songList.append(renderSong(song));
+  for (const song of visible) songList.append(renderSong(song));
 }
 
 async function loadSongs() {
@@ -401,6 +435,23 @@ $("#close-form").addEventListener("click", () => setFormOpen(false));
 $("#cancel-form").addEventListener("click", () => setFormOpen(false));
 searchInput.addEventListener("input", () => void loadSongs());
 sortSelect.addEventListener("change", () => void loadSongs());
+for (const input of document.querySelectorAll("[data-library-filter]")) {
+  input.addEventListener("input", renderSongs);
+}
+$("#clear-library-filters").addEventListener("click", () => {
+  for (const input of document.querySelectorAll("[data-library-filter]")) input.value = "";
+  renderSongs();
+});
+
+$("#tap-tempo-button").addEventListener("click", () => {
+  const bpm = tapTempo.tap();
+  if (bpm === null) {
+    tapTempoStatus.textContent = "Keep tapping…";
+    return;
+  }
+  bpmInput.value = String(bpm);
+  tapTempoStatus.textContent = `Tempo set to ${bpm} BPM.`;
+});
 
 for (const button of document.querySelectorAll("[data-view]")) {
   button.addEventListener("click", () => {
