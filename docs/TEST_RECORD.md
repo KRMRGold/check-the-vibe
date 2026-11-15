@@ -216,9 +216,9 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - Added `src/main/musicbrainz/canonical-matcher.js` with a JavaScript port of the established Python `SequenceMatcher(..., autojunk=False)` ratio behavior, existing normalization, artist-trigram candidate filtering, and the established 0.72 / 0.62 / 0.74 thresholds.
 - The matcher streams the canonical catalog CSV and then the recording-redirect and release-redirect CSVs. It canonicalizes recording IDs before deduplication and retains separate release associations and source release names.
 - Added matcher tests for normalization, similarity ratios, thresholds, exact-match precedence, fuzzy candidates, title-only candidates, ambiguous exact matches, missing recording IDs, recording alias redirects, and multiple release associations.
-- User pulled commit `e9a5887` and ran `npm run test:unit`: **65/65 passed, 0 failed**. This is verified evidence for the archive reader, CSV parser, paste staging, database migrations 0001–0002, and canonical matcher before the matching-persistence implementation below.
-- The matcher is now connected to backend paste-job processing and canonical metadata persistence by the latest implementation. The new persistence tests have not yet been run by the user.
-- **Not yet verified:** full archive matching against the user's multi-gigabyte snapshot, archive-pass performance, UI review/confirmation, and creation/linking of library songs after confirmation.
+- User pulled commit `e9a5887` and ran `npm run test:unit`: **65/65 passed, 0 failed**. This verified the archive reader, CSV parser, paste staging, migrations 0001–0002, and canonical matcher before matching persistence was added.
+- User then pulled commit `b955993` and ran `npm run test:unit`: **69/69 passed, 0 failed**. This verified migration 0003, backend paste-job matching/persistence, retry behavior, malformed-row accounting, and separation between canonical identity matching and library song creation.
+- **Not yet verified:** the new multi-member archive-streaming tests, full archive matching against the user's multi-gigabyte snapshot, real archive-pass performance, UI review/confirmation, and creation/linking of library songs after confirmation.
 
 ## M4 paste matching persistence — implementation awaiting local verification
 
