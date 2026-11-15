@@ -77,7 +77,7 @@ export function createLibraryRepository(db) {
         recent: "s.updated_at DESC, s.title COLLATE NOCASE ASC",
         title: "s.title COLLATE NOCASE ASC, s.artist COLLATE NOCASE ASC",
         artist: "s.artist COLLATE NOCASE ASC, s.title COLLATE NOCASE ASC",
-        added: "s.created_at DESC, s.title COLLATE NOCASE ASC",
+        added: "s.created_at DESC, s.rowid DESC",
         bpm: "bpm IS NULL ASC, bpm ASC, s.title COLLATE NOCASE ASC",
         energy: "energy IS NULL ASC, energy ASC, s.title COLLATE NOCASE ASC"
       }[sort] ?? "s.updated_at DESC";
