@@ -61,6 +61,9 @@ export function createPasteImportMatchingRepository(db, {
   const markFailed = db.prepare(
     "UPDATE import_jobs SET status = 'failed', error = ? WHERE id = ?"
   );
+  const markCancelled = db.prepare(
+    "UPDATE import_jobs SET status = 'cancelled', error = ? WHERE id = ?"
+  );
 
   const persist = db.transaction(({ jobId, snapshotId, items, results }) => {
     const now = new Date().toISOString();
@@ -155,7 +158,7 @@ export function createPasteImportMatchingRepository(db, {
 
   return {
     get: getJob,
-    async process(jobId, { archivePath } = {}) {
+    async process(jobId, { archivePath, signal, onProgress } = {}) {
       if (typeof jobId !== "string" || !jobId) throw new TypeError("An import job ID is required.");
       if (typeof archivePath !== "string" || !archivePath) throw new TypeError("A canonical archive path is required.");
       if (processing.has(jobId)) throw new Error("PASTE_IMPORT_ALREADY_PROCESSING");
@@ -167,6 +170,7 @@ export function createPasteImportMatchingRepository(db, {
 
       processing.add(jobId);
       try {
+        if (signal?.aborted) throw new Error("PASTE_IMPORT_CANCELLED");
         const items = loadItems.all(jobId);
         const pending = items.filter((item) => item.parse_error === null && item.parsed_artist && item.parsed_title);
         if (!pending.length) {
@@ -180,8 +184,11 @@ export function createPasteImportMatchingRepository(db, {
         db.prepare("UPDATE import_jobs SET status = 'running', error = NULL WHERE id = ?").run(jobId);
         const matched = await matchArchive({
           archivePath,
-          tracks: pending.map((item) => ({ artist: item.parsed_artist, title: item.parsed_title }))
+          tracks: pending.map((item) => ({ artist: item.parsed_artist, title: item.parsed_title })),
+          signal,
+          onProgress
         });
+        if (signal?.aborted) throw new Error("PASTE_IMPORT_CANCELLED");
         if (!matched || !Array.isArray(matched.results) || matched.results.length !== pending.length ||
             typeof matched.snapshotId !== "string" || !matched.snapshotId) {
           throw new Error("CANONICAL_MATCH_RESULT_COUNT_MISMATCH");
@@ -195,6 +202,11 @@ export function createPasteImportMatchingRepository(db, {
         });
         return { ...getJob(jobId), summary };
       } catch (error) {
+        if (signal?.aborted || error.message === "PASTE_IMPORT_CANCELLED" ||
+            error.name === "AbortError" || error.code === "ABORT_ERR") {
+          markCancelled.run("PASTE_IMPORT_CANCELLED", jobId);
+          throw new Error("PASTE_IMPORT_CANCELLED");
+        }
         markFailed.run(error.message || "PASTE_IMPORT_MATCH_FAILED", jobId);
         throw error;
       } finally {
