@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { createZstdCompress } from "node:zlib";
-import { listZstdTarMembers, openZstdTarMember } from "../../src/main/musicbrainz/canonical-archive.js";
+import { listZstdTarMembers, openZstdTarMember, openZstdTarMembers } from "../../src/main/musicbrainz/canonical-archive.js";
 
 function tarHeader(name, size, type = "0") {
   const header = Buffer.alloc(512);
@@ -192,5 +192,58 @@ test("resolves GNU long-name metadata when listing and streaming a member", asyn
     const chunks = [];
     for await (const chunk of openZstdTarMember(archivePath, path)) chunks.push(Buffer.from(chunk));
     assert.deepEqual(Buffer.concat(chunks), payload);
+  });
+});
+
+
+test("streams multiple selected TAR members in archive order with backpressure", async () => {
+  const canonical = Buffer.from("canonical,".repeat(12000));
+  const recordingRedirects = Buffer.from("recording-redirect,".repeat(12000));
+  const releaseRedirects = Buffer.from("release-redirect,".repeat(12000));
+  const archive = makeArchive([
+    tarMember("snapshot/TIMESTAMP", "2026-11-03"),
+    tarMember("snapshot/canonical/data.csv", canonical.toString("utf8")),
+    tarMember("snapshot/recording.csv", recordingRedirects.toString("utf8")),
+    tarMember("snapshot/release.csv", releaseRedirects.toString("utf8"))
+  ]);
+
+  await withArchive(archive, async (archivePath) => {
+    const selected = openZstdTarMembers(archivePath, [
+      "snapshot/canonical/data.csv",
+      "snapshot/recording.csv",
+      "snapshot/release.csv"
+    ]);
+    const read = async (stream) => {
+      const chunks = [];
+      for await (const chunk of stream) chunks.push(Buffer.from(chunk));
+      return Buffer.concat(chunks);
+    };
+
+    const canonicalPromise = read(selected.streams.get("snapshot/canonical/data.csv"));
+    const canonicalResult = await canonicalPromise;
+    const recordingPromise = read(selected.streams.get("snapshot/recording.csv"));
+    const recordingResult = await recordingPromise;
+    const releaseResult = await read(selected.streams.get("snapshot/release.csv"));
+    await selected.done;
+
+    assert.deepEqual(canonicalResult, canonical);
+    assert.deepEqual(recordingResult, recordingRedirects);
+    assert.deepEqual(releaseResult, releaseRedirects);
+  });
+});
+
+test("multi-member streaming reports a missing requested member", async () => {
+  const archive = makeArchive([tarMember("snapshot/present.csv", "id\\n1\\n")]);
+
+  await withArchive(archive, async (archivePath) => {
+    const selected = openZstdTarMembers(archivePath, ["snapshot/present.csv", "snapshot/missing.csv"]);
+    const consume = async (stream) => {
+      for await (const _chunk of stream) {
+        // Consume the stream so the archive completion error can propagate.
+      }
+    };
+    const consumers = Promise.all([...selected.streams.values()].map(consume));
+    await assert.rejects(selected.done, /TAR member "snapshot\\/missing.csv" was not found/);
+    await assert.rejects(consumers);
   });
 });
