@@ -1,5 +1,15 @@
 import { randomUUID } from "node:crypto";
 
+function toSong(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    tags: row.tags ? row.tags.split(String.fromCharCode(31)) : [],
+    bpm: row.bpm ?? null,
+    energy: row.energy ?? null
+  };
+}
+
 export function createDeckRepository(db) {
   const insertDeck = db.prepare(`
     INSERT INTO decks (id, name, description, created_at, updated_at)
@@ -17,6 +27,15 @@ export function createDeckRepository(db) {
   const findSong = db.prepare("SELECT id FROM songs WHERE id = ?");
   const findEntry = db.prepare("SELECT id, deck_id, song_id, position, notes, added_at FROM deck_entries WHERE id = ?");
   const deleteEntry = db.prepare("DELETE FROM deck_entries WHERE id = ? AND deck_id = ?");
+  const compactPositions = db.transaction((deckId) => {
+    listEntryIds.all(deckId).forEach((row, position) => updatePosition.run(position, row.id, deckId));
+  });
+  const removeEntry = db.transaction(({ deckId, entryId }) => {
+    if (!findDeck.get(deckId)) throw new Error("DECK_NOT_FOUND");
+    const deleted = deleteEntry.run(entryId, deckId).changes > 0;
+    if (deleted) compactPositions(deckId);
+    return deleted;
+  });
   const listEntryRows = db.prepare(`
     SELECT de.id AS entry_id, de.deck_id, de.song_id, de.position,
            de.notes, de.added_at
@@ -82,7 +101,7 @@ export function createDeckRepository(db) {
     },
     listEntries(deckId) {
       if (!findDeck.get(deckId)) throw new Error("DECK_NOT_FOUND");
-      return listEntryRows.all(deckId).map((entry) => ({ ...entry, song: db.prepare(`
+      const getSong = db.prepare(`
         SELECT s.id, s.title, s.artist, s.album, s.release_year, s.duration_ms,
                s.identity_state, s.created_at, s.updated_at,
                COALESCE((SELECT group_concat(value, char(31)) FROM (
@@ -91,13 +110,11 @@ export function createDeckRepository(db) {
                (SELECT value_num FROM attribute_values WHERE song_id = s.id AND attribute = 'bpm' AND source = 'user') AS bpm,
                (SELECT value_num FROM attribute_values WHERE song_id = s.id AND attribute = 'energy' AND source = 'user') AS energy
         FROM songs s WHERE s.id = ?
-      `).get(entry.song_id) }));
+      `);
+      return listEntryRows.all(deckId).map((entry) => ({ ...entry, song: toSong(getSong.get(entry.song_id)) }));
     },
     addEntry: addEntry,
-    removeEntry({ deckId, entryId }) {
-      if (!findDeck.get(deckId)) throw new Error("DECK_NOT_FOUND");
-      return deleteEntry.run(entryId, deckId).changes > 0;
-    },
+    removeEntry: removeEntry,
     reorderEntries({ deckId, entryIds }) {
       reorderEntries(deckId, entryIds);
       return this.listEntries(deckId);
