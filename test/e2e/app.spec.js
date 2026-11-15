@@ -54,6 +54,20 @@ test("desktop library creates and searches a local song with isolated renderer",
     const invalid = await window.evaluate(() => window.ctv.ping("invalid"));
     expect(invalid.ok).toBe(false);
     expect(invalid.error.code).toBe("INVALID_PAYLOAD");
+    const progressApi = await window.evaluate(() => {
+      const unsubscribe = window.ctv.library.onMatchProgress(() => {});
+      unsubscribe();
+      return {
+        subscribe: typeof window.ctv.library.onMatchProgress,
+        cancel: typeof window.ctv.library.cancelPasteMatch
+      };
+    });
+    expect(progressApi).toEqual({ subscribe: "function", cancel: "function" });
+    const notRunning = await window.evaluate(() => window.ctv.library.cancelPasteMatch({
+      id: "00000000-0000-4000-8000-000000000000"
+    }));
+    expect(notRunning.ok).toBe(false);
+    expect(notRunning.error.code).toBe("NOT_RUNNING");
 
     await window.locator("#library-search").fill("");
     await window.locator("#add-song-button").click();
