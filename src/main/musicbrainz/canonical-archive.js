@@ -1,4 +1,5 @@
 import { createReadStream } from "node:fs";
+import { Readable } from "node:stream";
 import { createZstdDecompress } from "node:zlib";
 
 const BLOCK_SIZE = 512;
@@ -114,4 +115,95 @@ export async function listZstdTarMembers(archivePath) {
   }
 
   return members;
+}
+
+
+async function* selectedTarMemberChunks(archivePath, memberName) {
+  const source = createReadStream(archivePath);
+  const decompressed = createZstdDecompress();
+  source.on("error", (error) => decompressed.destroy(error));
+  source.pipe(decompressed);
+
+  let pending = Buffer.alloc(0);
+  let payloadRemaining = 0;
+  let currentMemberSize = 0;
+  let paddingRemaining = 0;
+  let selected = false;
+  let found = false;
+  let reachedEnd = false;
+
+  try {
+    for await (const chunk of decompressed) {
+      pending = pending.length ? Buffer.concat([pending, chunk]) : chunk;
+
+      while (true) {
+        if (payloadRemaining > 0) {
+          const consumed = Math.min(payloadRemaining, pending.length);
+          if (selected && consumed > 0) yield pending.subarray(0, consumed);
+          pending = pending.subarray(consumed);
+          payloadRemaining -= consumed;
+          if (payloadRemaining > 0) break;
+          paddingRemaining = (BLOCK_SIZE - (currentMemberSize % BLOCK_SIZE)) % BLOCK_SIZE;
+          if (selected) return;
+          continue;
+        }
+
+        if (paddingRemaining > 0) {
+          const consumed = Math.min(paddingRemaining, pending.length);
+          pending = pending.subarray(consumed);
+          paddingRemaining -= consumed;
+          if (paddingRemaining > 0) break;
+          continue;
+        }
+
+        if (pending.length < BLOCK_SIZE) break;
+        const header = pending.subarray(0, BLOCK_SIZE);
+        pending = pending.subarray(BLOCK_SIZE);
+        if (hasZeroBlock(header)) {
+          reachedEnd = true;
+          break;
+        }
+
+        const member = parseHeader(header);
+        selected = member.name === memberName;
+        if (selected) {
+          if (member.type !== "file") {
+            throw new Error(`TAR member "${memberName}" is not a regular file.`);
+          }
+          found = true;
+        }
+        currentMemberSize = member.size;
+        payloadRemaining = member.size;
+        if (payloadRemaining === 0 && selected) return;
+      }
+
+      if (reachedEnd) break;
+    }
+  } finally {
+    source.destroy();
+    decompressed.destroy();
+  }
+
+  if (payloadRemaining > 0 || paddingRemaining > 0) {
+    throw new Error(`TAR member "${memberName}" is truncated.`);
+  }
+  if (!reachedEnd) {
+    throw new Error("Zstandard TAR archive ended before a complete TAR end marker.");
+  }
+  if (!found) throw new Error(`TAR member "${memberName}" was not found.`);
+}
+
+export function openZstdTarMember(archivePath, memberName) {
+  if (typeof archivePath !== "string" || !archivePath) {
+    throw new TypeError("An archive path is required.");
+  }
+  if (typeof memberName !== "string" || !memberName) {
+    throw new TypeError("A TAR member name is required.");
+  }
+  if (typeof createZstdDecompress !== "function") {
+    const error = new Error("This Node.js runtime does not provide native Zstandard decompression.");
+    error.code = "ZSTD_UNAVAILABLE";
+    throw error;
+  }
+  return Readable.from(selectedTarMemberChunks(archivePath, memberName), { objectMode: false });
 }
