@@ -39,20 +39,22 @@ function parseHeader(header) {
 }
 
 function parsePaxRecords(buffer) {
-  const text = buffer.toString("utf8");
   const records = {};
   let offset = 0;
-  while (offset < Buffer.byteLength(text, "utf8")) {
-    const space = text.indexOf(" ", offset);
+  while (offset < buffer.length) {
+    const space = buffer.indexOf(0x20, offset);
     if (space < 0) throw new Error("Malformed PAX TAR metadata record.");
-    const length = Number.parseInt(text.slice(offset, space), 10);
-    if (!Number.isInteger(length) || length <= space - offset + 1) {
+    const lengthText = buffer.subarray(offset, space).toString("ascii");
+    const length = Number.parseInt(lengthText, 10);
+    if (!/^\\d+$/.test(lengthText) || !Number.isInteger(length) || length <= space - offset + 1) {
       throw new Error("Malformed PAX TAR metadata record length.");
     }
     const recordEnd = offset + length;
-    const record = Buffer.from(text, "utf8").subarray(space + 1, recordEnd).toString("utf8");
+    if (recordEnd > buffer.length) throw new Error("Truncated PAX TAR metadata record.");
+    const recordBytes = buffer.subarray(space + 1, recordEnd);
+    const record = recordBytes.subarray(0, recordBytes.at(-1) === 0x0a ? -1 : undefined).toString("utf8");
     const equals = record.indexOf("=");
-    if (equals > 0) records[record.slice(0, equals)] = record.slice(equals + 1).replace(/\n$/, "");
+    if (equals > 0) records[record.slice(0, equals)] = record.slice(equals + 1);
     offset = recordEnd;
   }
   return records;
