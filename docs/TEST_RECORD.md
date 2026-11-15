@@ -210,22 +210,16 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - **Status: IMPLEMENTED AND VERIFIED.** This verifies the current deck-management implementation and the tested user flows; it does not by itself mean the entire M3 milestone is accepted.
 
 
-## M4 paste-import and canonical matcher — implementation in progress
+## M4 paste-import and canonical matcher — fixture verification
 
-- Migration 0002, paste staging, streaming CSV parser, and archive-reader tests were included in the user's reported **57/57 unit-test pass** before the canonical matcher was added.
-- Added `src/main/musicbrainz/canonical-matcher.js` with a JavaScript port of the established Python `SequenceMatcher(..., autojunk=False)` ratio behavior, existing normalization, artist-trigram candidate filtering, and the established 0.72 / 0.62 / 0.74 thresholds.
-- The matcher streams the canonical catalog CSV and then the recording-redirect and release-redirect CSVs. It canonicalizes recording IDs before deduplication and retains separate release associations and source release names.
-- Added matcher tests for normalization, similarity ratios, thresholds, exact-match precedence, fuzzy candidates, title-only candidates, ambiguous exact matches, missing recording IDs, recording alias redirects, and multiple release associations.
-- User pulled commit `e9a5887` and ran `npm run test:unit`: **65/65 passed, 0 failed**. This verified the archive reader, CSV parser, paste staging, migrations 0001–0002, and canonical matcher before matching persistence was added.
-- User then pulled commit `b955993` and ran `npm run test:unit`: **69/69 passed, 0 failed**. This verified migration 0003, backend paste-job matching/persistence, retry behavior, malformed-row accounting, and separation between canonical identity matching and library song creation.
-- **Not yet verified:** the new multi-member archive-streaming tests, full archive matching against the user's multi-gigabyte snapshot, real archive-pass performance, UI review/confirmation, and creation/linking of library songs after confirmation.
-
-## M4 paste matching persistence — implementation awaiting local verification
-
-Added a matching service and database migration for processing staged paste imports. Unit fixtures cover persistence of snapshot provenance and candidate metadata, exact-single automatic identity selection, fuzzy review state, no-match and malformed-row accounting, release associations, retry after matcher failure, and the separation between canonical identity matching and library song creation. The service uses an injected archive matcher in tests; these tests have not yet been run by the user. No full MusicBrainz snapshot match has been run. The archive wrapper now has an optimized two-decompression path for the inspected member order (member listing, then one combined catalog-and-redirect traversal). The new multi-member reader and archive-matcher tests are awaiting local verification, so full-snapshot execution remains deferred.
-
-
-## Multi-member canonical archive streaming — implementation awaiting local verification
+- Migration 0002 preserves pasted source lines and parse errors; migration 0003 records snapshot provenance and the automatically matched recording MBID.
+- The streaming matcher ports the established normalization and Python `SequenceMatcher(..., autojunk=False)` behavior, artist-trigram filtering, and thresholds of artist 0.72, title 0.62, and geometric combined 0.74.
+- Recording redirects are resolved before recording deduplication; release redirects remain separate, and distinct release associations are retained. Only one exact canonical recording identity is auto-marked as matched. Ambiguous, fuzzy, and title-only results remain review candidates; matching does not create library songs.
+- Paste matching persistence is covered for snapshot provenance, candidate metadata, exact-single selection, fuzzy review, no-match and malformed-row accounting, release associations, retry after failure, and separation from library song creation.
+- The archive reader supports USTAR prefixes, PAX local/global paths, GNU long names, bounded extension metadata, selected-member streaming, and ordered multi-member streaming with backpressure. The inspected archive member order permits two decompression traversals total: one member-listing pass and one combined catalog/redirect pass.
+- User pulled commit `dc2cd73` and ran `npm run test:unit` on Windows with Node.js 24.15.0: **72 passed, 0 failed, 0 cancelled, 0 skipped**. This verifies the synthetic archive fixtures and end-to-end fixture matcher path.
+- **Not yet verified:** matching against the full local MusicBrainz snapshot, real-snapshot performance/memory use, progress/cancellation during the full scan, review/confirmation UI, and creation/linking of library songs after confirmation.
+- **Next M4 engineering prerequisite:** candidate accumulation is not yet strictly bounded by the final top-five fuzzy result limit. Add conservative per-track candidate/release bounds and observable cancellation/progress before running the multi-gigabyte snapshot.
 
 - Added a backpressured multi-member TAR reader so the canonical catalog, recording redirects, and release redirects can be consumed from one archive traversal when they occur in that order.
 - The archive wrapper still performs a member-listing traversal first, then the combined data traversal: two decompressions total on the inspected snapshot layout, down from four (listing plus three independent selected-member opens).
