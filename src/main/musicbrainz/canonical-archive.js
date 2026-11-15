@@ -46,7 +46,7 @@ function parsePaxRecords(buffer) {
     if (space < 0) throw new Error("Malformed PAX TAR metadata record.");
     const lengthText = buffer.subarray(offset, space).toString("ascii");
     const length = Number.parseInt(lengthText, 10);
-    if (!/^\\d+$/.test(lengthText) || !Number.isInteger(length) || length <= space - offset + 1) {
+    if (!/^\d+$/.test(lengthText) || !Number.isInteger(length) || length <= space - offset + 1) {
       throw new Error("Malformed PAX TAR metadata record length.");
     }
     const recordEnd = offset + length;
