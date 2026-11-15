@@ -223,3 +223,12 @@ Only record PASS when supported by exact command output or direct user-confirmed
 ## M4 paste matching persistence — implementation awaiting local verification
 
 Added a matching service and database migration for processing staged paste imports. Unit fixtures cover persistence of snapshot provenance and candidate metadata, exact-single automatic identity selection, fuzzy review state, no-match and malformed-row accounting, release associations, retry after matcher failure, and the separation between canonical identity matching and library song creation. The service uses an injected archive matcher in tests; these tests have not yet been run by the user. No full MusicBrainz snapshot match has been run. The archive wrapper currently traverses the compressed archive three times, so full-snapshot execution remains deferred pending archive-pass optimization.
+
+
+## Multi-member canonical archive streaming — implementation awaiting local verification
+
+- Added a backpressured multi-member TAR reader so the canonical catalog, recording redirects, and release redirects can be consumed from one archive traversal when they occur in that order.
+- The archive wrapper still performs a member-listing traversal first, then the combined data traversal: two decompressions total on the inspected snapshot layout, down from four (listing plus three independent selected-member opens).
+- If archive member order differs from canonical → recording redirects → release redirects, the matcher uses the existing sequential fallback rather than risking a stream-order deadlock.
+- Added fixture coverage for multiple large selected members with sequential consumers, missing members, and end-to-end canonical matching through the ordered archive path.
+- These new tests have not yet been run by the user. No full MusicBrainz snapshot match has been attempted.
