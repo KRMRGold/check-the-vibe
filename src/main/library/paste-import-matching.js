@@ -95,7 +95,7 @@ export function createPasteImportMatchingRepository(db, {
           candidate.recordingMbid,
           candidate.recordingName,
           candidate.artistCreditName,
-          candidate.artistMbidsRaw == null ? null : JSON.stringify(candidate.artistMbidsRaw),
+          null,
           snapshotId,
           now
         );
