@@ -7,6 +7,7 @@ const SEPARATOR = /\s+[—–-]\s+/u;
 export function parsePastedTrackLines(text) {
   if (typeof text !== "string") throw new TypeError("Paste input must be text.");
   const lines = text.split(/\r\n|\n|\r/u);
+  if (/(?:\r\n|\n|\r)$/u.test(text)) lines.pop();
   if (lines.length > MAX_LINES) throw new Error("PASTE_TOO_MANY_LINES");
 
   return lines.map((sourceLine, index) => {
