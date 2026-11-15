@@ -97,6 +97,14 @@ Research sources:
 - ListenBrainz dumps: https://metabrainz.org/datasets/postgres-dumps
 - Apple iTunes Search API: https://performance-partners.apple.com/search-api
 
+## M4 native Zstandard/TAR reader spike — NOT YET VERIFIED
+
+- Implemented on `main` in `src/main/musicbrainz/canonical-archive.js`: native `node:zlib` Zstandard decompression piped from the archive file, followed by bounded-memory TAR header parsing. Member payloads are skipped as a stream; no archive member is extracted or copied to disk.
+- Added four synthetic Zstandard/TAR unit tests for member listing, USTAR prefix paths, invalid header checksums, and truncated TAR input: `test/unit/canonical-archive.test.js`.
+- Added `npm run test:zstd-electron` to exercise Zstandard compression/decompression inside Electron's embedded Node runtime, separately from the Node CLI unit tests.
+- Node documents `createZstdDecompress` and `createZstdCompressSync` as experimental APIs introduced in Node 22.15. The project's engine floor is Node 22.17, so the API meets the declared minimum version, but its experimental status is a compatibility consideration.
+- **Not yet run:** `npm run test:unit` and `npm run test:zstd-electron` in the user's Windows environment. No pass is claimed. The archive reader currently only lists members; it does not yet expose a streaming CSV member to the matcher. PAX/GNU long-name TAR extensions are explicitly unsupported pending confirmation they are absent from the supplied archive.
+- Next verification commands: `npm run test:unit` and `npm run test:zstd-electron`.
 ## M0 accepted evidence
 
 - Tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
