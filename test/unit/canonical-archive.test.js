@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createZstdCompressSync } from "node:zlib";
+import { Readable } from "node:stream";
+import { createZstdCompress } from "node:zlib";
 import { listZstdTarMembers } from "../../src/main/musicbrainz/canonical-archive.js";
 
 function tarHeader(name, size, type = "0") {
@@ -33,11 +34,19 @@ function makeArchive(members) {
   return Buffer.concat([...members, Buffer.alloc(1024)]);
 }
 
+async function compressZstd(bytes) {
+  const chunks = [];
+  for await (const chunk of Readable.from([bytes]).pipe(createZstdCompress())) {
+    chunks.push(Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
 async function withArchive(bytes, run) {
   const directory = await mkdtemp(join(tmpdir(), "ctv-zstd-tar-"));
   const archivePath = join(directory, "fixture.tar.zst");
   try {
-    await writeFile(archivePath, createZstdCompressSync(bytes));
+    await writeFile(archivePath, await compressZstd(bytes));
     await run(archivePath);
   } finally {
     await rm(directory, { recursive: true, force: true });
