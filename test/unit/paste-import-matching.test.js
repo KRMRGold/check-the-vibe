@@ -163,3 +163,32 @@ test("candidate-limit overflow is persisted as needs-review and never auto-confi
   assert.equal(item.candidates.candidateLimitType, "exact");
   assert.equal(db.prepare("SELECT COUNT(*) AS count FROM songs").get().count, 0);
 });
+
+
+test("cancelling a canonical match marks the job cancelled and preserves staged rows", async (t) => {
+  let receivedSignal;
+  const { db, imports, matching } = await setup(t, async ({ signal, onProgress }) => {
+    receivedSignal = signal;
+    onProgress({ phase: "catalog", rowsProcessed: 100000 });
+    return new Promise((_resolve, reject) => {
+      signal.addEventListener("abort", () => reject(signal.reason), { once: true });
+    });
+  });
+  const created = imports.create("Artist — Song");
+  const controller = new AbortController();
+  const progress = [];
+  const pending = matching.process(created.id, {
+    archivePath: "/snapshot.tar.zst",
+    signal: controller.signal,
+    onProgress: (entry) => progress.push(entry)
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  controller.abort();
+  await assert.rejects(pending, /PASTE_IMPORT_CANCELLED/);
+
+  assert.equal(receivedSignal, controller.signal);
+  assert.deepEqual(progress, [{ phase: "catalog", rowsProcessed: 100000 }]);
+  assert.equal(db.prepare("SELECT status FROM import_jobs WHERE id = ?").get(created.id).status, "cancelled");
+  assert.equal(db.prepare("SELECT state FROM import_items WHERE job_id = ?").get(created.id).state, "pending");
+  assert.equal(db.prepare("SELECT COUNT(*) AS count FROM musicbrainz_recordings").get().count, 0);
+});
