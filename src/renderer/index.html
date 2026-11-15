@@ -43,7 +43,7 @@
               <label class="field">Album<input name="album" maxlength="240" placeholder="Album (optional)"></label>
               <label class="field">Release year<input name="releaseYear" type="number" min="1800" max="2200" placeholder="Year"></label>
               <label class="field">Duration (seconds)<input name="durationSeconds" type="number" min="1" max="86400" placeholder="e.g. 214"></label>
-              <label class="field">BPM<input name="bpm" type="number" min="1" max="400" step="1" placeholder="Optional"></label>
+              <label class="field bpm-field">BPM<div class="bpm-input-row"><input id="bpm-input" name="bpm" type="number" min="1" max="400" step="1" placeholder="Optional"><button class="quiet-button" id="tap-tempo-button" type="button">Tap tempo</button></div><span class="field-hint" id="tap-tempo-status" aria-live="polite">Tap at a steady pace to set BPM.</span></label>
               <label class="field">Tags<input name="tags" placeholder="dream pop, late night, ..."><span class="field-hint">Separate tags with commas.</span></label>
               <label class="field energy-field">Energy <output id="energy-value" for="energy">Not set</output><input id="energy" name="energy" type="range" min="0" max="1" step="0.01" value="0.5"><span class="field-hint">Optional · 0 = calm, 1 = intense</span></label>
             </div>
@@ -67,8 +67,19 @@
         <section id="library-view">
         <div class="library-toolbar">
           <label class="search-box"><span aria-hidden="true">⌕</span><input id="library-search" type="search" placeholder="Search songs, artists, tags…" autocomplete="off"><kbd>SEARCH</kbd></label>
-          <div class="toolbar-controls"><label class="sort-control">Sort <select id="library-sort"><option value="recent">Recently updated</option><option value="title">Title</option><option value="artist">Artist</option></select></label><div class="view-toggle" role="group" aria-label="Library view"><button type="button" class="view-button active" data-view="list" aria-pressed="true" aria-label="List view">☰</button><button type="button" class="view-button" data-view="grid" aria-pressed="false" aria-label="Card view">▦</button></div></div>
+          <div class="toolbar-controls"><label class="sort-control">Sort <select id="library-sort"><option value="recent">Recently updated</option><option value="added">Date added</option><option value="title">Title</option><option value="artist">Artist</option><option value="bpm">BPM</option><option value="energy">Energy</option></select></label><div class="view-toggle" role="group" aria-label="Library view"><button type="button" class="view-button active" data-view="list" aria-pressed="true" aria-label="List view">☰</button><button type="button" class="view-button" data-view="grid" aria-pressed="false" aria-label="Card view">▦</button></div></div>
         </div>
+        <details class="library-filters">
+          <summary>Filter collection</summary>
+          <div class="filter-fields">
+            <label>Tag contains<input id="filter-tag" data-library-filter type="search" placeholder="e.g. dream pop"></label>
+            <label>Minimum BPM<input id="filter-bpm-min" data-library-filter type="number" min="1" max="400" placeholder="Any"></label>
+            <label>Maximum BPM<input id="filter-bpm-max" data-library-filter type="number" min="1" max="400" placeholder="Any"></label>
+            <label>Minimum energy<input id="filter-energy-min" data-library-filter type="number" min="0" max="1" step="0.01" placeholder="Any"></label>
+            <label>Maximum energy<input id="filter-energy-max" data-library-filter type="number" min="0" max="1" step="0.01" placeholder="Any"></label>
+            <button class="quiet-button" id="clear-library-filters" type="button">Clear filters</button>
+          </div>
+        </details>
 
         <div class="library-summary"><span id="song-count">0 songs</span><span class="summary-divider">/</span><span>LOCAL COLLECTION</span></div>
         <div id="song-list" class="song-list" aria-live="polite"><div class="empty-state"><span class="empty-symbol">♫</span><h2>Your library is waiting.</h2><p>Add a song to start building your collection.</p></div></div>
