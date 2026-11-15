@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { listZstdTarMembers, openZstdTarMember } from "./canonical-archive.js";
+import { listZstdTarMembers, openZstdTarMember, openZstdTarMembers } from "./canonical-archive.js";
 import { parseCsvStream } from "./csv-stream.js";
 
 export const CANONICAL_MATCH_THRESHOLDS = Object.freeze({
@@ -397,12 +397,40 @@ export async function matchCanonicalArchive({ archivePath, tracks, snapshotId = 
   const canonicalMember = findMember(members, "canonical_musicbrainz_data.csv", "canonical data");
   const recordingRedirectMember = findMember(members, "canonical_recording_redirect.csv", "recording redirect");
   const releaseRedirectMember = findMember(members, "canonical_release_redirect.csv", "release redirect");
-  const results = await matchCanonicalStreams({
-    canonicalCsv: openZstdTarMember(archivePath, canonicalMember),
-    recordingRedirectCsv: openZstdTarMember(archivePath, recordingRedirectMember),
-    releaseRedirectCsv: openZstdTarMember(archivePath, releaseRedirectMember),
-    tracks
-  });
+  const canonicalIndex = members.findIndex((member) => member.name === canonicalMember);
+  const recordingRedirectIndex = members.findIndex((member) => member.name === recordingRedirectMember);
+  const releaseRedirectIndex = members.findIndex((member) => member.name === releaseRedirectMember);
+
+  let results;
+  if (canonicalIndex < recordingRedirectIndex && recordingRedirectIndex < releaseRedirectIndex) {
+    const archiveStreams = openZstdTarMembers(archivePath, [
+      canonicalMember,
+      recordingRedirectMember,
+      releaseRedirectMember
+    ]);
+    try {
+      results = await matchCanonicalStreams({
+        canonicalCsv: archiveStreams.streams.get(canonicalMember),
+        recordingRedirectCsv: archiveStreams.streams.get(recordingRedirectMember),
+        releaseRedirectCsv: archiveStreams.streams.get(releaseRedirectMember),
+        tracks
+      });
+      await archiveStreams.done;
+    } catch (error) {
+      archiveStreams.destroy(error);
+      await archiveStreams.done.catch(() => {});
+      throw error;
+    }
+  } else {
+    // If the archive member order differs, retain the safe sequential fallback.
+    results = await matchCanonicalStreams({
+      canonicalCsv: openZstdTarMember(archivePath, canonicalMember),
+      recordingRedirectCsv: openZstdTarMember(archivePath, recordingRedirectMember),
+      releaseRedirectCsv: openZstdTarMember(archivePath, releaseRedirectMember),
+      tracks
+    });
+  }
+
   return {
     snapshotId: snapshotId ?? basename(archivePath),
     results
