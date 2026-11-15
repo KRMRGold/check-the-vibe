@@ -3,8 +3,11 @@ import { randomUUID } from "node:crypto";
 const SEARCH_SQL = `
   SELECT s.id, s.title, s.artist, s.album, s.release_year, s.duration_ms,
          s.identity_state, s.created_at, s.updated_at,
-         COALESCE((SELECT group_concat(value, char(31)) FROM song_tags
-                   WHERE song_id = s.id AND source = 'user'), '') AS tags,
+         COALESCE((SELECT group_concat(value, char(31)) FROM (
+                     SELECT value FROM song_tags
+                     WHERE song_id = s.id AND source = 'user'
+                     ORDER BY rowid
+                   )), '') AS tags,
          (SELECT value_num FROM attribute_values
           WHERE song_id = s.id AND attribute = 'bpm' AND source = 'user') AS bpm,
          (SELECT value_num FROM attribute_values
