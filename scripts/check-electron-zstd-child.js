@@ -9,4 +9,4 @@ for await (const chunk of Readable.from(compressed).pipe(createZstdDecompress())
   chunks.push(chunk);
 }
 assert.deepEqual(Buffer.concat(chunks), original);
-process.stdout.write(`Electron embedded Node ${process.versions.node}: native Zstandard stream PASS\\n`);
+process.stdout.write(`Electron embedded Node ${process.versions.node}: native Zstandard stream PASS\n`);
