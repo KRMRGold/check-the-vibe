@@ -165,17 +165,20 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - Deck management implementation and tests are now verified. Remaining M3 scope: review any remaining library filtering and deck UX needs, complete milestone acceptance, and confirm any remaining M3 requirements.
 
 
-## M3 remaining library UX — candidate, test run pending
+## M3 remaining library UX — verified
 
 - Implementation is on `main`; no branches or PRs.
-- Added a small renderer-side tap-tempo helper. It averages up to four recent tap intervals, resets after a pause longer than two seconds, and clamps the result to the supported 1–400 BPM input range.
+- Added a renderer-side tap-tempo helper. It averages up to four recent tap intervals, resets after a pause longer than two seconds, and clamps the result to the supported 1–400 BPM input range. Manual BPM edits reset the tap sequence.
 - Added library filters for tag substring, minimum/maximum BPM, and minimum/maximum user energy. Filtering is applied to the current search result set; unknown BPM/energy values are excluded when that numeric range is active.
 - Added sorting by date added, BPM and energy. Unknown BPM/energy values sort last; date-added ties use row insertion order for deterministic output.
 - Existing title, artist and recently-updated sorting remain.
 - Genre-specific sorting is not implemented: the current schema has user tags but no distinct genre field. Do not mislabel arbitrary user tags as genres; revisit when genre metadata is introduced.
-- Added 1 library repository sort test and 3 tap-tempo unit tests. Extended the Electron E2E test to exercise tap tempo, tag/BPM filters, and switching list/grid views while filters remain active.
-- Expected current unit count: **39** (previous 35 plus 1 library sort test and 3 tap-tempo tests). This is a count inferred from the committed test additions, not an executed result.
-- **Status: IMPLEMENTED; VERIFICATION PENDING.** Await the user's Windows `npm test` run before recording any PASS or accepting M3.
+- Added 1 library repository sort test and 3 tap-tempo unit tests. Extended the Electron E2E test to exercise tap tempo, tag/BPM/energy filters, and switching list/grid views while filters remain active.
+- User ran `git pull` followed by `npm test` on Windows on 2026-11-14.
+- **Unit tests: 39 passed, 0 failed, 0 cancelled, 0 skipped.**
+- **Electron E2E: 1 passed.**
+- **Complete test command: PASS.** No failures were reported.
+- **Status: IMPLEMENTED AND VERIFIED.** This verifies the current library UX slice; full M3 milestone acceptance remains a separate user decision.
 
 ## M3 deck management — verified
 
