@@ -117,3 +117,13 @@ M5–M11 remain deferred. Do not implement later milestone features before their
 - The original 10-track comparison remains **0 exact, 0 title-only, 10 no match**. With the corrected header handling, the parser reports **106,574 data rows**; the earlier 106,575 count included the index-name row mistakenly treated as data.
 - Positive control: user ran `npm run compare:fma -- --data-dir data/cache/fma_metadata --sample data/samples/fma-positive-control.json --output results/fma-positive-control-result.json`. The sample uses the exact `Kurt Vile — Freeway` row from the local archive. Result: **106,574 rows read; 1 exact single match; 0 title-only candidates; 0 no match**.
 - Interpretation: the known-row positive control validates the tested parser and strict exact-title-plus-artist matcher end to end for this row. It does not establish broad FMA coverage or prove the original ten inputs are absent. Their original wording and uncertainty notes remain unchanged.
+
+
+## M4 paste-import foundation
+
+- Pasted Artist — Title imports reuse `import_jobs` and `import_items` with `provider = 'paste'`; YouTube imports remain distinguishable by provider and keep their existing video identifiers.
+- Migration `0002_paste_imports_and_musicbrainz.sql` makes `video_id` nullable, preserves existing import rows, and adds `source_line` and `parse_error` so original input and malformed lines are retained in order.
+- Canonical MusicBrainz recordings, releases, and their many-to-many associations have separate tables. A recording can retain multiple release associations; release groups are not treated as releases.
+- `library.importPaste({ text })` is exposed through the validated IPC/preload boundary. The parser accepts em dash, en dash, or a spaced hyphen between artist and title; it caps batches at 500 lines and individual lines at 1,000 characters. Blank and malformed lines are retained as unmatched items with parse-error codes; valid lines are staged as pending.
+- The paste API currently stages rows only. Canonical matching, review/confirmation UI, and adding matched songs to the library are not yet implemented.
+- `src/main/musicbrainz/csv-stream.js` provides streaming CSV parsing with UTF-8-safe chunk decoding for the canonical archive reader.
