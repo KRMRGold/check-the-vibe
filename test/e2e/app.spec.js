@@ -98,6 +98,8 @@ test("desktop library creates and searches a local song with isolated renderer",
     await expect(window.locator(".deck-entry")).toHaveCount(2);
     await window.locator("#library-nav").click();
     await window.locator("#library-search").fill("");
+    await window.locator(".library-filters summary").click();
+    await expect(window.locator("#filter-tag")).toBeVisible();
     await window.locator("#filter-tag").fill("dream pop");
     await expect(window.locator("#song-count")).toHaveText("1 of 2 songs");
     await expect(window.locator("#song-list .song-title")).toHaveText("Glass Garden");
