@@ -59,3 +59,13 @@ test("library sorting is deterministic", async (t) => {
   assert.deepEqual(library.listSongs({ sort: "title" }).map((song) => song.title), ["Alpha", "Zulu"]);
   assert.deepEqual(library.listSongs({ sort: "artist" }).map((song) => song.artist), ["A", "B"]);
 });
+
+test("library sorts BPM and energy with unknown values last, and date added newest first", async (t) => {
+  const library = await setup(t);
+  library.saveSong({ title: "Unknown", artist: "A" });
+  library.saveSong({ title: "Fast", artist: "A", bpm: 150, energy: 0.8 });
+  library.saveSong({ title: "Slow", artist: "A", bpm: 90, energy: 0.2 });
+  assert.deepEqual(library.listSongs({ sort: "bpm" }).map((song) => song.title), ["Slow", "Fast", "Unknown"]);
+  assert.deepEqual(library.listSongs({ sort: "energy" }).map((song) => song.title), ["Slow", "Fast", "Unknown"]);
+  assert.deepEqual(library.listSongs({ sort: "added" }).map((song) => song.title), ["Slow", "Fast", "Unknown"]);
+});
