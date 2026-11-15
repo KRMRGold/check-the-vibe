@@ -6,7 +6,14 @@ contextBridge.exposeInMainWorld("ctv", Object.freeze({
     list: (payload) => ipcRenderer.invoke("library:list", payload),
     saveSong: (payload) => ipcRenderer.invoke("library:save-song", payload),
     importPaste: (payload) => ipcRenderer.invoke("library:import-paste", payload),
-    matchPaste: (payload) => ipcRenderer.invoke("library:match-paste", payload)
+    matchPaste: (payload) => ipcRenderer.invoke("library:match-paste", payload),
+    cancelPasteMatch: (payload) => ipcRenderer.invoke("library:cancel-paste-match", payload),
+    onMatchProgress: (callback) => {
+      if (typeof callback !== "function") throw new TypeError("A progress callback is required.");
+      const listener = (_event, progress) => callback(progress);
+      ipcRenderer.on("library:match-progress", listener);
+      return () => ipcRenderer.removeListener("library:match-progress", listener);
+    }
   }),
   decks: Object.freeze({
     list: () => ipcRenderer.invoke("decks:list"),
