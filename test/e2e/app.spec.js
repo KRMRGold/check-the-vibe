@@ -61,7 +61,7 @@ test("desktop library creates and searches a local song with isolated renderer",
     await window.getByRole("button", { name: "Add Moonlit Arcade to deck" }).click();
     await expect(window.locator(".deck-entry")).toHaveCount(3);
     await window.getByRole("button", { name: "Move Moonlit Arcade up" }).click();
-    await expect(window.locator(".deck-entry .song-title").allTextContents()).resolves.toEqual([
+    await expect(window.locator(".deck-entry .song-title")).toHaveText([
       "Glass Garden", "Moonlit Arcade", "Glass Garden"
     ]);
     await window.locator(".deck-entry").first().getByRole("button", { name: "Remove Glass Garden from deck" }).click();
