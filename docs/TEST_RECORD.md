@@ -97,14 +97,15 @@ Research sources:
 - ListenBrainz dumps: https://metabrainz.org/datasets/postgres-dumps
 - Apple iTunes Search API: https://performance-partners.apple.com/search-api
 
-## M4 native Zstandard/TAR reader spike — NOT YET VERIFIED
+## M4 native Zstandard/TAR reader — runtime verified; member streaming implemented
 
-- Implemented on `main` in `src/main/musicbrainz/canonical-archive.js`: native `node:zlib` Zstandard decompression piped from the archive file, followed by bounded-memory TAR header parsing. Member payloads are skipped as a stream; no archive member is extracted or copied to disk.
-- Added four synthetic Zstandard/TAR unit tests for member listing, USTAR prefix paths, invalid header checksums, and truncated TAR input: `test/unit/canonical-archive.test.js`.
-- Added `npm run test:zstd-electron` to exercise Zstandard compression/decompression inside Electron's embedded Node runtime, separately from the Node CLI unit tests.
-- Node documents `createZstdDecompress` and `createZstdCompress` as experimental streaming APIs introduced in Node 22.15. The project engine floor is Node 22.17, so these stream APIs meet the declared minimum version. The separate `compressZstdSync` convenience API arrived later (Node 25.9) and is not available in the user's Node 24.15 / Electron embedded Node 24 runtimes.
-- The first user verification attempt exposed that the test fixture and Electron smoke test incorrectly imported `createZstdCompressSync`, which does not exist in Node 24. The tests were corrected on `main` to generate fixtures with the supported `createZstdCompress` stream API. **Rerun still required:** `npm run test:unit` and `npm run test:zstd-electron`; no pass is claimed. The archive reader currently only lists members; it does not yet expose a streaming CSV member to the matcher. PAX/GNU long-name TAR extensions are explicitly unsupported pending confirmation they are absent from the supplied archive.
-- Next verification commands: `npm run test:unit` and `npm run test:zstd-electron`.
+- Implemented on `main` in `src/main/musicbrainz/canonical-archive.js`: native `node:zlib` Zstandard decompression, bounded-memory TAR header parsing, member listing, and `openZstdTarMember(archivePath, memberName)` for streaming one selected regular-file member without extracting it.
+- Six synthetic Zstandard/TAR unit tests cover member listing, USTAR prefix paths, invalid header checksums, truncated archives, selected-member streaming, and missing-member errors.
+- Node documents `createZstdDecompress` and `createZstdCompress` as experimental streaming APIs introduced in Node 22.15. The project engine floor is Node 22.17.
+- User verified `npm run test:unit`: **43 passed, 0 failed**. User verified `npm run test:zstd-electron`: **PASS — Electron embedded Node 24.22.2 native Zstandard stream**.
+- The selected-member stream is tested against a synthetic compressed TAR. Full canonical snapshot compatibility and end-to-end matcher consumption are not yet verified. PAX/GNU long-name TAR extensions remain unsupported pending confirmation they are absent from the supplied archive.
+- Next step: consume the canonical CSV member through the existing streaming CSV parser and port the local canonical matcher, preserving redirect resolution and bounded candidate memory.
+
 ## M0 accepted evidence
 
 - Tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
