@@ -61,7 +61,10 @@ test("one song can appear multiple times in one deck and in multiple decks", asy
 
   assert.notEqual(firstOccurrence, secondOccurrence);
   assert.notEqual(firstOccurrence, otherDeckOccurrence);
-  assert.deepEqual(ctx.decks.listEntries(first.id).map((entry) => entry.song_id), [songId, songId]);
+  const firstEntries = ctx.decks.listEntries(first.id);
+  assert.deepEqual(firstEntries.map((entry) => entry.song_id), [songId, songId]);
+  assert.deepEqual(firstEntries[0].song.tags, ["dream pop"]);
+  assert.equal(firstEntries[0].song.title, "Glass Garden");
   assert.deepEqual(ctx.decks.listEntries(second.id).map((entry) => entry.song_id), [songId]);
   assert.equal(ctx.decks.listDecks().find((deck) => deck.id === first.id).entry_count, 2);
 });
@@ -77,6 +80,23 @@ test("removing one occurrence leaves other occurrences and the library song inta
   assert.deepEqual(ctx.decks.listEntries(deck.id).map((entry) => entry.id), [second]);
   assert.equal(ctx.library.getSong(songId).title, "Glass Garden");
   assert.equal(ctx.decks.getEntry(first), null);
+});
+
+test("removing an entry compacts positions before the next song is added", async (t) => {
+  const ctx = await setup(t);
+  const deck = ctx.decks.createDeck({ name: "Compact" });
+  const ids = [
+    song(ctx.library, "One"),
+    song(ctx.library, "Two"),
+    song(ctx.library, "Three")
+  ].map((songId) => ctx.decks.addEntry(deck.id, songId));
+
+  ctx.decks.removeEntry({ deckId: deck.id, entryId: ids[1] });
+  const fourthSong = song(ctx.library, "Four");
+  const fourth = ctx.decks.addEntry(deck.id, fourthSong);
+  const entries = ctx.decks.listEntries(deck.id);
+  assert.deepEqual(entries.map((entry) => entry.position), [0, 1, 2]);
+  assert.deepEqual(entries.map((entry) => entry.id), [ids[0], ids[2], fourth]);
 });
 
 test("reordering renumbers entries and survives a database restart", async (t) => {
