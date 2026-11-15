@@ -151,3 +151,13 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - AcousticBrainz high-level sample: 85 MB archive downloaded to the user's local cache and SHA-256 verified. The archive was not extracted or inspected; MBID coverage, duplicate handling and feature quality remain NOT RUN. This is an accepted deferral, not a pass.
 - No provider adapters, dataset importers, live provider calls or federation code exist. No claim is made that AcousticBrainz coverage is adequate.
 - M3 may proceed offline-first without any provider implementation.
+
+
+## M3 implementation slice — manual library foundation
+
+- Branch: `m3/library-foundation` (draft candidate; not accepted)
+- Implemented on the branch: local manual song add/edit; user tags; user BPM and energy; FTS-backed title/artist/tag search; recent/title/artist sorting; list and card-grid presentation; validated IPC; repository-level SQLite persistence.
+- Unit coverage added for manual song persistence, tag/attribute replacement on edit, search across title/artist/tags, and sorting.
+- Electron E2E coverage updated to create a song through the UI, search its tag, verify empty results, and retain renderer isolation / invalid IPC checks.
+- Status: NOT RUN in a local Electron/Windows environment. No tests are marked PASS until the user runs the candidate locally.
+- Remaining M3 scope: deck CRUD, adding reusable songs to decks, occurrence-level ordering/removal, fuller library filtering, and milestone acceptance.
