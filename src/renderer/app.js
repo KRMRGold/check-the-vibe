@@ -443,6 +443,11 @@ $("#clear-library-filters").addEventListener("click", () => {
   renderSongs();
 });
 
+bpmInput.addEventListener("input", () => {
+  tapTempo.reset();
+  tapTempoStatus.textContent = "Manual BPM entry.";
+});
+
 $("#tap-tempo-button").addEventListener("click", () => {
   const bpm = tapTempo.tap();
   if (bpm === null) {
