@@ -59,6 +59,10 @@ test("desktop library creates and searches a local song with isolated renderer",
     await window.locator("#add-song-button").click();
     await window.locator('[name="title"]').fill("Moonlit Arcade");
     await window.locator('[name="artist"]').fill("Static Bloom");
+    await window.locator("#energy").evaluate((input) => {
+      input.value = "0.3";
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    });
     await window.locator("#song-form button[type=submit]").click();
     await window.locator("#create-deck-button").click();
     await window.locator('#deck-form [name="name"]').fill("Night drives");
@@ -92,6 +96,10 @@ test("desktop library creates and searches a local song with isolated renderer",
     await expect(window.locator("#song-list .song-title")).toHaveText("Glass Garden");
     await window.locator('[data-view="list"]').click();
     await expect(window.locator("#song-list")).toHaveClass(/song-list/);
+    await window.locator("#clear-library-filters").click();
+    await window.locator("#filter-energy-min").fill("0.2");
+    await window.locator("#filter-energy-max").fill("0.4");
+    await expect(window.locator("#song-list .song-title")).toHaveText("Moonlit Arcade");
     await window.locator("#clear-library-filters").click();
     await expect(window.locator("#song-count")).toHaveText("2 songs");
   } finally {
