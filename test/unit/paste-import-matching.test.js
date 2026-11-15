@@ -73,13 +73,14 @@ test("processes paste rows, persists snapshot candidates, and separates identity
   assert.equal(exact.chosen_song_id, null);
   assert.equal(exact.candidates.snapshotId, "musicbrainz-snapshot-2026-11-03");
   assert.equal(exact.candidates.candidates[0].recordingMbid, "recording-1");
+  assert.equal(exact.candidates.candidates[0].artistMbidsRaw, "artist-mbid-1");
   assert.equal(fuzzy.state, "needs_review");
   assert.equal(fuzzy.matched_recording_mbid, null);
   assert.equal(missing.state, "unmatched");
 
   assert.deepEqual(
-    db.prepare("SELECT recording_name, artist_credit_name, snapshot_id FROM musicbrainz_recordings WHERE recording_mbid = 'recording-1'").get(),
-    { recording_name: "Canonical Song", artist_credit_name: "Canonical Artist", snapshot_id: "musicbrainz-snapshot-2026-11-03" }
+    db.prepare("SELECT recording_name, artist_credit_name, artist_mbids_json, snapshot_id FROM musicbrainz_recordings WHERE recording_mbid = 'recording-1'").get(),
+    { recording_name: "Canonical Song", artist_credit_name: "Canonical Artist", artist_mbids_json: null, snapshot_id: "musicbrainz-snapshot-2026-11-03" }
   );
   assert.deepEqual(
     db.prepare("SELECT release_name, release_group_mbid FROM musicbrainz_releases WHERE release_mbid = 'release-1'").get(),
