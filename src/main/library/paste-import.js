@@ -2,11 +2,11 @@ import { randomUUID } from "node:crypto";
 
 const MAX_LINES = 500;
 const MAX_LINE_LENGTH = 1000;
-const SEPARATOR = /\\s+[—–-]\\s+/u;
+const SEPARATOR = /\s+[—–-]\s+/u;
 
 export function parsePastedTrackLines(text) {
   if (typeof text !== "string") throw new TypeError("Paste input must be text.");
-  const lines = text.split(/\\r\\n|\\n|\\r/u);
+  const lines = text.split(/\r\n|\n|\r/u);
   if (lines.length > MAX_LINES) throw new Error("PASTE_TOO_MANY_LINES");
 
   return lines.map((sourceLine, index) => {
@@ -32,24 +32,24 @@ export function parsePastedTrackLines(text) {
 }
 
 export function createPasteImportRepository(db) {
-  const insertJob = db.prepare(`
+  const insertJob = db.prepare(\`
     INSERT INTO import_jobs (
       id, provider, source_ref, status, total, matched, needs_review,
       unavailable, created_at
     ) VALUES (?, 'paste', ?, 'done', ?, 0, 0, 0, ?)
-  `);
-  const insertItem = db.prepare(`
+  \`);
+  const insertItem = db.prepare(\`
     INSERT INTO import_items (
       id, job_id, position, video_id, source_line, parse_error, state,
       parsed_artist, parsed_title, candidates_json
     ) VALUES (?, ?, ?, NULL, ?, ?, ?, ?, ?, '[]')
-  `);
+  \`);
 
   const create = db.transaction((text) => {
     const items = parsePastedTrackLines(text);
     const jobId = randomUUID();
     const now = new Date().toISOString();
-    insertJob.run(jobId, `paste:${jobId}`, items.length, now);
+    insertJob.run(jobId, \`paste:\${jobId}\`, items.length, now);
     for (const item of items) {
       const invalid = item.parseError !== null;
       insertItem.run(
