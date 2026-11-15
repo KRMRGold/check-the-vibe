@@ -446,8 +446,7 @@ export async function matchCanonicalStreams({
   throwIfAborted(signal);
   const streams = [canonicalCsv, recordingRedirectCsv, releaseRedirectCsv];
   const abortStreams = () => {
-    const error = createAbortError();
-    for (const stream of streams) stream.destroy?.(error);
+    for (const stream of streams) stream.destroy?.();
   };
   signal?.addEventListener("abort", abortStreams, { once: true });
   try {
@@ -474,6 +473,9 @@ export async function matchCanonicalStreams({
     const releaseRedirects = await readReleaseRedirects(releaseRedirectCsv, candidateReleaseIds, options);
     throwIfAborted(signal);
     return canonicalizeCandidates(states, recordingRedirects, releaseRedirects);
+  } catch (error) {
+    if (signal?.aborted) throw createAbortError();
+    throw error;
   } finally {
     signal?.removeEventListener("abort", abortStreams);
   }
