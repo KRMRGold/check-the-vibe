@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Readable } from "node:stream";
 import { createZstdCompress } from "node:zlib";
-import { listZstdTarMembers } from "../../src/main/musicbrainz/canonical-archive.js";
+import { listZstdTarMembers, openZstdTarMember } from "../../src/main/musicbrainz/canonical-archive.js";
 
 function tarHeader(name, size, type = "0") {
   const header = Buffer.alloc(512);
@@ -96,5 +96,38 @@ test("rejects a truncated TAR archive", async () => {
 
   await withArchive(truncated, async (archivePath) => {
     await assert.rejects(listZstdTarMembers(archivePath), /ended before a complete TAR end marker/);
+  });
+});
+
+
+test("streams one selected TAR member without extracting it", async () => {
+  const expected = Buffer.from("selected CSV member\\nwith multiple rows\\n");
+  const archive = makeArchive([
+    tarMember("snapshot/COPYING", "license text"),
+    tarMember("snapshot/canonical/data.csv", expected.toString("utf8")),
+    tarMember("snapshot/after.txt", "trailing member")
+  ]);
+
+  await withArchive(archive, async (archivePath) => {
+    const chunks = [];
+    for await (const chunk of openZstdTarMember(archivePath, "snapshot/canonical/data.csv")) {
+      chunks.push(Buffer.from(chunk));
+    }
+    assert.deepEqual(Buffer.concat(chunks), expected);
+  });
+});
+
+test("rejects a selected TAR member that does not exist", async () => {
+  const archive = makeArchive([tarMember("snapshot/TIMESTAMP", "2026-11-03")]);
+
+  await withArchive(archive, async (archivePath) => {
+    await assert.rejects(
+      async () => {
+        for await (const _chunk of openZstdTarMember(archivePath, "missing.csv")) {
+          // Consume the stream so its missing-member error is observed.
+        }
+      },
+      /TAR member "missing.csv" was not found/
+    );
   });
 });
