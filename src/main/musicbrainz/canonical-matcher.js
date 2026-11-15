@@ -8,6 +8,11 @@ export const CANONICAL_MATCH_THRESHOLDS = Object.freeze({
   combined: 0.74
 });
 
+export const CANONICAL_MATCH_LIMITS = Object.freeze({
+  candidatesPerTrackAndType: 32,
+  releasesPerCandidate: 8
+});
+
 const REQUIRED_COLUMNS = [
   "release_mbid", "release_name", "recording_mbid", "recording_name",
   "artist_credit_name", "artist_mbids"
@@ -103,18 +108,24 @@ function artistTrigrams(value) {
   return grams;
 }
 
-function addCandidate(map, recordingId, row, match) {
-  let candidate = map.get(recordingId);
+function addCandidate(state, type, recordingId, row, match) {
+  const candidates = state[type];
+  let candidate = candidates.get(recordingId);
   if (!candidate) {
+    if (candidates.size >= CANONICAL_MATCH_LIMITS.candidatesPerTrackAndType) {
+      state[type + "Overflow"] = true;
+      return null;
+    }
     candidate = {
       sourceRecordingMbid: recordingId,
       recordingName: row.recording_name,
       artistCreditName: row.artist_credit_name,
       artistMbidsRaw: row.artist_mbids || null,
       releases: new Map(),
+      releasesTruncated: false,
       ...match
     };
-    map.set(recordingId, candidate);
+    candidates.set(recordingId, candidate);
   }
   if (row.release_mbid) addRelease(candidate, row.release_mbid, row.release_name);
   if (match.combinedSimilarity != null &&
@@ -125,8 +136,15 @@ function addCandidate(map, recordingId, row, match) {
 }
 
 function addRelease(candidate, releaseMbid, releaseName = null) {
-  if (releaseMbid && (!candidate.releases.has(releaseMbid) || (!candidate.releases.get(releaseMbid) && releaseName))) {
+  if (!releaseMbid) return;
+  if (!candidate.releases.has(releaseMbid)) {
+    if (candidate.releases.size >= CANONICAL_MATCH_LIMITS.releasesPerCandidate) {
+      candidate.releasesTruncated = true;
+      return;
+    }
     candidate.releases.set(releaseMbid, releaseName || null);
+  } else if (!candidate.releases.get(releaseMbid) && releaseName) {
+    candidate.releases.set(releaseMbid, releaseName);
   }
 }
 
@@ -166,7 +184,10 @@ function buildInputStates(tracks) {
       title,
       exact: new Map(),
       titleOnly: new Map(),
-      fuzzy: new Map()
+      fuzzy: new Map(),
+      exactOverflow: false,
+      titleOnlyOverflow: false,
+      fuzzyOverflow: false
     };
   });
 
@@ -216,14 +237,14 @@ async function collectCatalogCandidates(readable, tracks) {
     const titleMatches = byTitle.get(title) ?? [];
     for (const state of titleMatches) {
       if (artist === state.artist) {
-        addCandidate(state.exact, recordingId, row, {
+        addCandidate(state, "exact", recordingId, row, {
           matchType: "exact",
           artistSimilarity: 1,
           titleSimilarity: 1,
           combinedSimilarity: 1
         });
       } else {
-        addCandidate(state.titleOnly, recordingId, row, { matchType: "title_only" });
+        addCandidate(state, "titleOnly", recordingId, row, { matchType: "title_only" });
       }
     }
 
@@ -240,7 +261,7 @@ async function collectCatalogCandidates(readable, tracks) {
       if (titleSimilarity < CANONICAL_MATCH_THRESHOLDS.title) continue;
       const combinedSimilarity = Math.sqrt(artistSimilarity * titleSimilarity);
       if (combinedSimilarity < CANONICAL_MATCH_THRESHOLDS.combined) continue;
-      addCandidate(state.fuzzy, recordingId, row, {
+      addCandidate(state, "fuzzy", recordingId, row, {
         matchType: "fuzzy",
         artistSimilarity,
         titleSimilarity,
@@ -285,6 +306,7 @@ function canonicalizeCandidates(states, recordingRedirects, releaseRedirects) {
             artistCreditName: source.artistCreditName,
             artistMbidsRaw: source.artistMbidsRaw,
             releases: new Map(),
+            releasesTruncated: false,
             matchType: source.matchType,
             artistSimilarity: source.artistSimilarity ?? null,
             titleSimilarity: source.titleSimilarity ?? null,
@@ -298,16 +320,23 @@ function canonicalizeCandidates(states, recordingRedirects, releaseRedirects) {
           target.combinedSimilarity = source.combinedSimilarity ?? null;
         }
 
+        target.releasesTruncated ||= source.releasesTruncated;
         const releaseIds = new Map(source.releases);
-        if (recordingRedirect?.canonical_release_mbid) {
-          if (!releaseIds.has(recordingRedirect.canonical_release_mbid)) {
+        if (recordingRedirect?.canonical_release_mbid && !releaseIds.has(recordingRedirect.canonical_release_mbid)) {
+          if (releaseIds.size < CANONICAL_MATCH_LIMITS.releasesPerCandidate) {
             releaseIds.set(recordingRedirect.canonical_release_mbid, null);
+          } else {
+            target.releasesTruncated = true;
           }
         }
         for (const [sourceReleaseMbid, releaseName] of releaseIds) {
           const redirect = releaseRedirects.get(sourceReleaseMbid);
           const releaseMbid = redirect?.canonical_release_mbid || sourceReleaseMbid;
           const previousRelease = target.releases.get(releaseMbid);
+          if (!previousRelease && target.releases.size >= CANONICAL_MATCH_LIMITS.releasesPerCandidate) {
+            target.releasesTruncated = true;
+            continue;
+          }
           target.releases.set(releaseMbid, {
             releaseMbid,
             releaseName: previousRelease?.releaseName || releaseName || null,
@@ -323,17 +352,34 @@ function canonicalizeCandidates(states, recordingRedirects, releaseRedirects) {
 
     const exact = canonicalize(state.exact);
     const titleOnly = canonicalize(state.titleOnly);
-    const fuzzy = canonicalize(state.fuzzy).sort(compareCandidates).slice(0, 20);
+    const fuzzy = canonicalize(state.fuzzy).sort(compareCandidates);
     let matchStatus;
     let candidates;
+    let candidateLimitType = null;
+
     if (exact.length) {
-      matchStatus = exact.length === 1 ? "exact_single" : "multiple_exact";
+      if (state.exactOverflow) {
+        matchStatus = "candidate_limit_exceeded";
+        candidateLimitType = "exact";
+      } else {
+        matchStatus = exact.length === 1 ? "exact_single" : "multiple_exact";
+      }
       candidates = exact;
     } else if (fuzzy.length) {
-      matchStatus = "fuzzy_candidates";
+      if (state.fuzzyOverflow) {
+        matchStatus = "candidate_limit_exceeded";
+        candidateLimitType = "fuzzy";
+      } else {
+        matchStatus = "fuzzy_candidates";
+      }
       candidates = fuzzy.slice(0, 5);
     } else if (titleOnly.length) {
-      matchStatus = titleOnly.length === 1 ? "title_only_candidate" : "multiple_title_only_candidates";
+      if (state.titleOnlyOverflow) {
+        matchStatus = "candidate_limit_exceeded";
+        candidateLimitType = "title_only";
+      } else {
+        matchStatus = titleOnly.length === 1 ? "title_only_candidate" : "multiple_title_only_candidates";
+      }
       candidates = titleOnly.slice(0, 5);
     } else {
       matchStatus = "no_match";
@@ -343,13 +389,13 @@ function canonicalizeCandidates(states, recordingRedirects, releaseRedirects) {
     return {
       input: state.source,
       matchStatus,
-      exactMatchCount: exact.length,
-      titleOnlyCandidateCount: titleOnly.length,
+      exactMatchCount: state.exactOverflow ? null : exact.length,
+      titleOnlyCandidateCount: state.titleOnlyOverflow ? null : titleOnly.length,
+      candidateLimitType,
       candidates
     };
   });
 }
-
 async function streamCatalog(readable, tracks) {
   return collectCatalogCandidates(readable, tracks);
 }
