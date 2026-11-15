@@ -54,7 +54,10 @@ export async function listZstdTarMembers(archivePath) {
     throw error;
   }
 
-  const decompressed = createReadStream(archivePath).pipe(createZstdDecompress());
+  const source = createReadStream(archivePath);
+  const decompressed = createZstdDecompress();
+  source.on("error", (error) => decompressed.destroy(error));
+  source.pipe(decompressed);
   const members = [];
   let pending = Buffer.alloc(0);
   let payloadRemaining = 0;
