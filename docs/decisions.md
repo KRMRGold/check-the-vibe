@@ -146,3 +146,13 @@ This is an architectural decision only. It does not mean federation, a provider 
 - Match policy: normalized exact title+artist is the only exact match. Title-only matches remain candidates requiring manual review. No fuzzy match is accepted automatically.
 - Generated JSON results live under the git-ignored `results/` directory and can be shared separately.
 - This is research tooling only; it is not an FMA provider adapter and does not change the provisional provider chain.
+
+
+## M2 — Empty-by-default feature-provider chain (accepted 2026-11-14)
+
+- No external audio-feature provider is selected for the MVP at this point. The provider chain remains empty by default; manual user-entered attributes are the usable fallback.
+- MusicBrainz canonical data is a promising static identity reference, not an audio-feature provider. No app integration is implemented.
+- FMA metadata is not selected: the tested ten-recording comparison returned no matches, although the parser and one known-row positive control passed.
+- AcousticBrainz remains an optional future candidate only. The 85 MB high-level sample archive was downloaded locally and its SHA-256 checksum verified, but its contents, MBID coverage, duplicate submissions and feature quality were not inspected. No coverage claim is made.
+- This is an explicit M2 scope exit accepted by the user so offline-first M3 work can proceed. Reopening provider research requires a concrete reason and should not block the library/deck milestone.
+- No provider adapter, dataset importer, live provider call or federation implementation is implied by this decision.

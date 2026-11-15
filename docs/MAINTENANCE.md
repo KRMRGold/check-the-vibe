@@ -3,9 +3,9 @@
 ## Current state
 
 - Project: Check the Vibe
-- App version: 0.1.0 (M1 accepted; M2 investigation underway)
-- Current milestone: M2 — Data-provider spike
-- Milestone status: M0 and M1 accepted; M1 private-video and embedding-disabled-video checks explicitly deferred; M2 provider research in progress
+- App version: 0.1.0 (M0–M2 accepted; M3 in progress)
+- Current milestone: M3 — Library and decks
+- Milestone status: M0, M1 and M2 accepted; M1 private-video and embedding-disabled-video checks explicitly deferred; M2 accepted with no external feature provider selected and an empty-by-default provider chain
 - M0 tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
 - M0 acceptance tag: `m0-v0.0.1` (pushed; verified to target the tested M0 commit)
 - Current branch: main
@@ -55,7 +55,7 @@ A future federation layer may share eligible provider-sourced metadata records b
 
 Original provider provenance, source identifiers, retrieval time, confidence/match information, applicable license/attribution, and expiry must survive caching and peer transfer. Peer-supplied records are untrusted and require validation. Federation must not redistribute data or extend retention beyond what the original source permits.
 
-This is an architectural direction only. Federation topology, discovery/rendezvous, transport, consent controls, integrity/trust, conflict resolution, and abuse controls remain undecided. No federation code, provider adapter, or dataset importer has been implemented. M2's provider comparison is underway. The FMA 10-track baseline found 0/10 matches. The parser's three-row pandas header/index handling is covered by regression tests, and a positive-control comparison against a known local FMA row returned one exact match. AcousticBrainz coverage remains next.
+This is an architectural direction only. Federation topology, discovery/rendezvous, transport, consent controls, integrity/trust, conflict resolution, and abuse controls remain undecided. No federation code, provider adapter, or dataset importer has been implemented. The user accepted M2 on 2026-11-14 with the provider chain left empty by default: the app will rely on user-entered attributes until a future provider is separately justified. MusicBrainz canonical data remains a promising identity reference but is not an implemented feature provider. The FMA 10-track baseline found 0/10 matches; its parser and positive-control path were verified, but FMA was not selected as a provider. The AcousticBrainz high-level sample archive was downloaded locally and its SHA-256 checksum verified; its contents, MBID coverage, duplicate submissions and feature quality were not inspected. AcousticBrainz is deferred as an optional future candidate, not a dependency or selected provider.
 
 
 M2 provider research was revised on 2026-11-14 around a multi-provider, attribute-specific model. No provider is selected as a universal default and no provider adapter exists.
@@ -71,12 +71,16 @@ Current capability direction:
 
 Other exclusions remain: MeloData (user-rejected), Last.fm (key/usage controls and non-commercial terms), GetSongBPM (quota and backlink), ReccoBeats (Spotify-derived), Audiometa (Spotify provenance not established), SoundStat/Soundcharts (paid), and FMAK annotations (Spotify URI mappings).
 
-No new datasets have been downloaded beyond the user-downloaded FMA metadata archive. No provider adapters, dataset importers, live provider calls, or federation code have been implemented.
+The user also downloaded the 85 MB AcousticBrainz high-level sample archive under `data/cache/acousticbrainz/`; its SHA-256 checksum was verified locally. The archive has not been extracted or inspected, and no coverage claim is made. The low-level archive was not downloaded. No provider adapters, dataset importers, live provider calls, or federation code have been implemented.
 
+
+## M3 — Library and decks (in progress)
+
+M3 is the active milestone. The first implementation slice is on branch `m3/library-foundation`: a manual local song library with add/edit, user tags, BPM and energy, SQLite persistence, FTS-backed search, title/artist/recent sorting, and list/card-grid views. Validated IPC is exposed through a narrow preload bridge. Unit and Electron E2E tests have been added but have not yet been run on the user's machine. Deck CRUD, deck entries/reordering, richer filters, and final M3 acceptance remain outstanding. Keep this milestone offline-first; do not block it on metadata providers.
 
 ## Deferred
 
-M3–M11 remain unstarted. Do not implement later milestone features before M2 is resolved.
+M4–M11 remain unstarted. Do not implement later milestone features before their prerequisites are accepted.
 
 ## Operational notes
 

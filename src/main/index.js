@@ -6,6 +6,7 @@ import { openDatabase } from "./db/connection.js";
 import { runMigrations } from "./db/migrate.js";
 import { startContentServer } from "./contentServer.js";
 import { registerAppIpc } from "./ipc/app.js";
+import { registerLibraryIpc } from "./ipc/library.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const rendererDirectory = join(here, "../renderer");
@@ -80,6 +81,7 @@ app.whenReady().then(async () => {
     throw new Error("CTV_PROVIDER_MODE must be 'fixture' or 'live'.");
   }
   registerAppIpc();
+  registerLibraryIpc(database);
   await createMainWindow();
 }).catch((error) => {
   console.error("Application startup failed:", error);

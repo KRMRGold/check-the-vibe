@@ -4,61 +4,62 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="color-scheme" content="dark">
-  <title>Check the Vibe — YouTube Embed Spike</title>
+  <title>Check the Vibe — Library</title>
   <link rel="stylesheet" href="./app.css">
   <script type="module" src="./app.js"></script>
 </head>
 <body>
-  <main class="shell">
+  <main class="app-shell">
     <header class="topbar">
-      <div class="brand-mark" aria-hidden="true">CTV</div>
-      <div>
-        <p class="eyebrow">M1 · FEASIBILITY SPIKE</p>
-        <h1>Check the Vibe</h1>
-      </div>
-      <span class="stage">YOUTUBE EMBED TEST</span>
+      <a class="brand" href="#" aria-label="Check the Vibe home">
+        <span class="brand-mark">CTV</span>
+        <span><span class="brand-name">check the vibe</span><span class="brand-subtitle">your music, your rules</span></span>
+      </a>
+      <div class="topbar-right"><span class="status-indicator"></span><span>LOCAL LIBRARY</span></div>
     </header>
 
-    <section class="content" aria-labelledby="welcome-title">
-      <p class="eyebrow">LOOPBACK HOSTING · IFRAME PLAYER API</p>
-      <h2 id="welcome-title">Can this player live here?</h2>
-      <p class="intro">A temporary test screen for checking YouTube playback in development and in the unpacked desktop build. Nothing is downloaded.</p>
+    <div class="workspace">
+      <aside class="sidebar">
+        <p class="nav-label">COLLECTION</p>
+        <a class="nav-item active" href="#library" aria-current="page"><span>▦</span> Library</a>
+        <div class="sidebar-note"><span class="note-mark">✳</span><p>Your collection starts with the songs you choose to keep.</p></div>
+        <div class="sidebar-bottom"><span class="local-dot"></span> Stored on this device</div>
+      </aside>
 
-      <section class="test-panel" aria-label="Player test controls">
-        <label for="video-id">YouTube video ID</label>
-        <div class="controls">
-          <input id="video-id" type="text" value="M7lc1UVf-VE" spellcheck="false" autocomplete="off" aria-describedby="video-help">
-          <button id="load-video" type="button">Load video</button>
-          <button id="play-video" type="button" disabled>Play</button>
-          <button id="pause-video" type="button" disabled>Pause</button>
+      <section class="main-panel" id="library" aria-labelledby="page-title">
+        <div class="page-heading">
+          <div><p class="eyebrow">THE COLLECTION</p><h1 id="page-title">Your library<span class="heading-period">.</span></h1><p class="page-description">A home for the tracks that make you feel something.</p></div>
+          <button class="primary-button" id="add-song-button" type="button"><span>＋</span> Add a song</button>
         </div>
-        <p id="video-help" class="hint">Default ID is an official IFrame API sample; confirm its current availability during the test.</p>
-        <p class="origin-line">Page origin: <code id="page-origin">Checking…</code></p>
-      </section>
 
-      <div class="player-frame">
-        <div id="player" aria-label="YouTube video player"></div>
-        <p id="player-placeholder">Load a video to create the player.</p>
-      </div>
+        <section class="song-form-panel" id="song-form-panel" hidden aria-labelledby="form-title">
+          <div class="form-heading"><div><p class="eyebrow">COLLECTION EDITOR</p><h2 id="form-title">Add a song</h2></div><button class="icon-button" id="close-form" type="button" aria-label="Close form">×</button></div>
+          <form id="song-form">
+            <div class="form-grid">
+              <label class="field field-wide">Title<input name="title" maxlength="240" required placeholder="Song title"></label>
+              <label class="field">Artist<input name="artist" maxlength="240" required placeholder="Artist name"></label>
+              <label class="field">Album<input name="album" maxlength="240" placeholder="Album (optional)"></label>
+              <label class="field">Release year<input name="releaseYear" type="number" min="1800" max="2200" placeholder="Year"></label>
+              <label class="field">Duration (seconds)<input name="durationSeconds" type="number" min="1" max="86400" placeholder="e.g. 214"></label>
+              <label class="field">BPM<input name="bpm" type="number" min="1" max="400" step="1" placeholder="Optional"></label>
+              <label class="field">Tags<input name="tags" placeholder="dream pop, late night, ..."><span class="field-hint">Separate tags with commas.</span></label>
+              <label class="field energy-field">Energy <output id="energy-value" for="energy">Not set</output><input id="energy" name="energy" type="range" min="0" max="1" step="0.01" value="0.5"><span class="field-hint">Optional · 0 = calm, 1 = intense</span></label>
+            </div>
+            <div class="form-actions"><button class="quiet-button" id="cancel-form" type="button">Cancel</button><button class="primary-button" type="submit" id="save-song-button">Save song</button></div>
+            <p class="form-error" id="form-error" role="alert"></p>
+          </form>
+        </section>
 
-      <section class="status-panel" aria-live="polite">
-        <span id="status-dot" class="status-dot" aria-hidden="true"></span>
-        <div>
-          <strong id="player-status">Waiting for YouTube API</strong>
-          <p id="player-detail">The IFrame API script will load when the page starts.</p>
+        <div class="library-toolbar">
+          <label class="search-box"><span aria-hidden="true">⌕</span><input id="library-search" type="search" placeholder="Search songs, artists, tags…" autocomplete="off"><kbd>SEARCH</kbd></label>
+          <div class="toolbar-controls"><label class="sort-control">Sort <select id="library-sort"><option value="recent">Recently updated</option><option value="title">Title</option><option value="artist">Artist</option></select></label><div class="view-toggle" role="group" aria-label="Library view"><button type="button" class="view-button active" data-view="list" aria-pressed="true" aria-label="List view">☰</button><button type="button" class="view-button" data-view="grid" aria-pressed="false" aria-label="Card view">▦</button></div></div>
         </div>
-      </section>
 
-      <section class="event-panel" aria-label="Player event log">
-        <div class="event-heading">
-          <h3>Event log</h3>
-          <button id="clear-log" class="quiet-button" type="button">Clear</button>
-        </div>
-        <ol id="event-log" class="event-log"><li>Waiting for API…</li></ol>
+        <div class="library-summary"><span id="song-count">0 songs</span><span class="summary-divider">/</span><span>LOCAL COLLECTION</span></div>
+        <div id="song-list" class="song-list" aria-live="polite"><div class="empty-state"><span class="empty-symbol">♫</span><h2>Your library is waiting.</h2><p>Add a song to start building your collection.</p></div></div>
+        <p class="workspace-footer">CHECK THE VIBE <span>·</span> A LITTLE SPACE FOR A LOT OF MUSIC</p>
       </section>
-    </section>
-
-    <footer>THROWAWAY SPIKE · NO LIBRARY DATA · NO AUDIO DOWNLOADS</footer>
+    </div>
   </main>
 </body>
 </html>
