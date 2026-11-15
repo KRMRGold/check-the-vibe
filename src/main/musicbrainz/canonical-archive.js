@@ -1,5 +1,5 @@
 import { createReadStream } from "node:fs";
-import { Readable } from "node:stream";
+import { PassThrough, Readable } from "node:stream";
 import { createZstdDecompress } from "node:zlib";
 
 const BLOCK_SIZE = 512;
@@ -271,6 +271,168 @@ async function* selectedTarMemberChunks(archivePath, memberName) {
   }
   if (!reachedEnd) throw new Error("Zstandard TAR archive ended before a complete TAR end marker.");
   if (!found) throw new Error(`TAR member "${memberName}" was not found.`);
+}
+
+
+async function* selectedTarMembersChunks(archivePath, memberNames) {
+  const selectedNames = new Set(memberNames);
+  const found = new Set();
+  let pending = Buffer.alloc(0);
+  let payloadRemaining = 0;
+  let currentMemberSize = 0;
+  let paddingRemaining = 0;
+  let selectedName = null;
+  let reachedEnd = false;
+  let extensionType = null;
+  let extensionChunks = [];
+  let globalPax = {};
+  let localPax = {};
+  let longName = null;
+
+  for await (const chunk of decompressedTarChunks(archivePath)) {
+    pending = pending.length ? Buffer.concat([pending, chunk]) : chunk;
+    while (true) {
+      if (payloadRemaining > 0) {
+        const consumed = Math.min(payloadRemaining, pending.length);
+        if (extensionType && consumed) {
+          extensionChunks.push(Buffer.from(pending.subarray(0, consumed)));
+          if (extensionChunks.reduce((sum, item) => sum + item.length, 0) > MAX_EXTENSION_SIZE) {
+            throw new Error("TAR extension metadata exceeds the 1 MiB safety limit.");
+          }
+        } else if (selectedName && consumed) {
+          yield { memberName: selectedName, chunk: Buffer.from(pending.subarray(0, consumed)) };
+        }
+        pending = pending.subarray(consumed);
+        payloadRemaining -= consumed;
+        if (payloadRemaining > 0) break;
+        if (extensionType) {
+          const decoded = decodeExtension(extensionType, extensionChunks);
+          if (extensionType === "pax-global") globalPax = { ...globalPax, ...decoded };
+          else if (extensionType === "pax-local") localPax = decoded;
+          else if (extensionType === "gnu-long-name") longName = decoded.value;
+          extensionType = null;
+          extensionChunks = [];
+        } else if (selectedName) {
+          yield { memberName: selectedName, chunk: null };
+          selectedName = null;
+        }
+        paddingRemaining = (BLOCK_SIZE - (currentMemberSize % BLOCK_SIZE)) % BLOCK_SIZE;
+        continue;
+      }
+      if (paddingRemaining > 0) {
+        const consumed = Math.min(paddingRemaining, pending.length);
+        pending = pending.subarray(consumed);
+        paddingRemaining -= consumed;
+        if (paddingRemaining > 0) break;
+        continue;
+      }
+      if (pending.length < BLOCK_SIZE) break;
+      const header = pending.subarray(0, BLOCK_SIZE);
+      pending = pending.subarray(BLOCK_SIZE);
+      if (hasZeroBlock(header)) {
+        reachedEnd = true;
+        break;
+      }
+      const member = parseHeader(header);
+      currentMemberSize = member.size;
+      payloadRemaining = member.size;
+      if (member.extensionType) {
+        extensionType = member.extensionType;
+        extensionChunks = [];
+        if (payloadRemaining === 0) {
+          const decoded = decodeExtension(extensionType, extensionChunks);
+          if (extensionType === "pax-global") globalPax = { ...globalPax, ...decoded };
+          else if (extensionType === "pax-local") localPax = decoded;
+          else if (extensionType === "gnu-long-name") longName = decoded.value;
+          extensionType = null;
+        }
+        selectedName = null;
+      } else {
+        const resolved = applyExtensions(member, globalPax, localPax, longName);
+        selectedName = selectedNames.has(resolved.name) ? resolved.name : null;
+        localPax = {};
+        longName = null;
+        if (selectedName) {
+          if (found.has(selectedName)) throw new Error(`TAR member "${selectedName}" occurs more than once.`);
+          if (resolved.type !== "file") throw new Error(`TAR member "${selectedName}" is not a regular file.`);
+          found.add(selectedName);
+          if (payloadRemaining === 0) {
+            yield { memberName: selectedName, chunk: null };
+            selectedName = null;
+          }
+        }
+      }
+    }
+    if (reachedEnd) break;
+  }
+
+  if (payloadRemaining > 0 || paddingRemaining > 0) {
+    throw new Error("A selected TAR member or archive payload is truncated.");
+  }
+  if (!reachedEnd) throw new Error("Zstandard TAR archive ended before a complete TAR end marker.");
+  for (const name of selectedNames) {
+    if (!found.has(name)) throw new Error(`TAR member "${name}" was not found.`);
+  }
+}
+
+function writeWithBackpressure(stream, chunk) {
+  if (stream.destroyed) return Promise.reject(new Error("A selected TAR member stream was closed."));
+  if (stream.write(chunk)) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      stream.off("drain", onDrain);
+      stream.off("error", onError);
+      stream.off("close", onClose);
+    };
+    const onDrain = () => { cleanup(); resolve(); };
+    const onError = (error) => { cleanup(); reject(error); };
+    const onClose = () => { cleanup(); reject(new Error("A selected TAR member stream was closed.")); };
+    stream.once("drain", onDrain);
+    stream.once("error", onError);
+    stream.once("close", onClose);
+  });
+}
+
+/**
+ * Opens several selected regular-file members during one archive traversal.
+ * Each returned stream applies backpressure to the shared TAR reader.
+ */
+export function openZstdTarMembers(archivePath, memberNames) {
+  if (typeof archivePath !== "string" || !archivePath) throw new TypeError("An archive path is required.");
+  if (!Array.isArray(memberNames) || memberNames.length < 1 ||
+      memberNames.some((name) => typeof name !== "string" || !name) ||
+      new Set(memberNames).size !== memberNames.length) {
+    throw new TypeError("One or more unique TAR member names are required.");
+  }
+  assertZstdAvailable();
+
+  const streams = new Map(memberNames.map((name) => [name, new PassThrough()]));
+  const done = (async () => {
+    try {
+      for await (const event of selectedTarMembersChunks(archivePath, memberNames)) {
+        const stream = streams.get(event.memberName);
+        if (event.chunk === null) stream.end();
+        else await writeWithBackpressure(stream, event.chunk);
+      }
+    } catch (error) {
+      for (const stream of streams.values()) {
+        if (!stream.destroyed) stream.destroy(error);
+      }
+      throw error;
+    }
+  })();
+  // The caller awaits the completion promise; attach a handler while CSV consumers finish.
+  done.catch(() => {});
+
+  return {
+    streams,
+    done,
+    destroy(error = new Error("Selected TAR member streams were cancelled.")) {
+      for (const stream of streams.values()) {
+        if (!stream.destroyed) stream.destroy(error);
+      }
+    }
+  };
 }
 
 export function openZstdTarMember(archivePath, memberName) {
