@@ -3,9 +3,9 @@
 ## Current state
 
 - Project: Check the Vibe
-- App version: 0.1.0 (M0–M2 accepted; M3 implementation verified, acceptance pending)
-- Current milestone: M3 — Library and decks
-- Milestone status: M0, M1 and M2 accepted; M1 private-video and embedding-disabled-video checks explicitly deferred; M2 accepted with no external feature provider selected and an empty-by-default provider chain; M3 implementation and current test suite verified, awaiting user acceptance
+- App version: 0.1.0 (M0–M3 accepted)
+- Current milestone: M4 — Identification and pasted lists
+- Milestone status: M0–M3 accepted; M1 private-video and embedding-disabled-video checks explicitly deferred; M2 accepted with no external feature provider selected and an empty-by-default provider chain
 - M0 tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
 - M0 acceptance tag: `m0-v0.0.1` (pushed; verified to target the tested M0 commit)
 - Current branch: main
@@ -74,13 +74,22 @@ Other exclusions remain: MeloData (user-rejected), Last.fm (key/usage controls a
 The user also downloaded the 85 MB AcousticBrainz high-level sample archive under `data/cache/acousticbrainz/`; its SHA-256 checksum was verified locally. The archive has not been extracted or inspected, and no coverage claim is made. The low-level archive was not downloaded. No provider adapters, dataset importers, live provider calls, or federation code have been implemented.
 
 
-## M3 — Library and decks (in progress)
+## M3 — Library and decks (accepted)
 
-M3 is the active milestone and work is being done directly on `main`. The manual local song library is implemented: add/edit, user tags, BPM and energy, SQLite persistence, FTS-backed search, title/artist/recent sorting, and list/card-grid views. The user ran the library candidate on Windows: **28/28 unit tests and 1/1 Electron E2E test passed** after the tag-order regression fix (commit `fc89000`). The current M3 candidate adds deck CRUD, deck descriptions, reusable library songs as deck entries, duplicate occurrences, occurrence removal, deterministic reordering, and a renderer workflow for creating/editing/deleting decks and adding/removing/reordering tracks. The existing `decks` and `deck_entries` tables from migration 0001 are reused; no migration is required. Seven deck unit tests cover CRUD, duplicate occurrences, cross-deck reuse, removal isolation, position compaction, reorder validation/persistence across database reopen, and deck deletion preserving library songs. The Electron E2E test now exercises deck creation, duplicate adds, reorder, and removal. First Windows run: **35/35 unit tests passed**; E2E exposed a broad final assertion selector matching both library and deck content. The selector was scoped to `#song-list .song-title` in commit `def8f79`. The user reran `npm test` on Windows: **35/35 unit tests passed and 1/1 Electron E2E test passed**. Deck management is implemented and verified. The remaining library UX slice is implemented on `main`: tap-tempo BPM entry; tag, BPM-range and energy-range filters; and sorting by date added, BPM and energy in addition to title, artist and recently updated. The filter controls are presentation-side over the current search result set; unknown BPM/energy values do not pass an active numeric range. Genre-specific sorting is deferred until genre has a distinct data model rather than treating arbitrary user tags as genres. The tap-tempo helper and expanded library sorting have unit coverage, and the Electron E2E scenario exercises tap tempo, filtering, energy filtering, and list/grid preservation. The user ran `npm test` on Windows on 2026-11-14: **39/39 unit tests passed and 1/1 Electron E2E test passed**. **M3 implementation is verified; milestone acceptance remains pending.** Keep this milestone offline-first; do not block it on metadata providers.
+M3 is the active milestone and work is being done directly on `main`. The manual local song library is implemented: add/edit, user tags, BPM and energy, SQLite persistence, FTS-backed search, title/artist/recent sorting, and list/card-grid views. The user ran the library candidate on Windows: **28/28 unit tests and 1/1 Electron E2E test passed** after the tag-order regression fix (commit `fc89000`). The current M3 candidate adds deck CRUD, deck descriptions, reusable library songs as deck entries, duplicate occurrences, occurrence removal, deterministic reordering, and a renderer workflow for creating/editing/deleting decks and adding/removing/reordering tracks. The existing `decks` and `deck_entries` tables from migration 0001 are reused; no migration is required. Seven deck unit tests cover CRUD, duplicate occurrences, cross-deck reuse, removal isolation, position compaction, reorder validation/persistence across database reopen, and deck deletion preserving library songs. The Electron E2E test now exercises deck creation, duplicate adds, reorder, and removal. First Windows run: **35/35 unit tests passed**; E2E exposed a broad final assertion selector matching both library and deck content. The selector was scoped to `#song-list .song-title` in commit `def8f79`. The user reran `npm test` on Windows: **35/35 unit tests passed and 1/1 Electron E2E test passed**. Deck management is implemented and verified. The remaining library UX slice is implemented on `main`: tap-tempo BPM entry; tag, BPM-range and energy-range filters; and sorting by date added, BPM and energy in addition to title, artist and recently updated. The filter controls are presentation-side over the current search result set; unknown BPM/energy values do not pass an active numeric range. Genre-specific sorting is deferred until genre has a distinct data model rather than treating arbitrary user tags as genres. The tap-tempo helper and expanded library sorting have unit coverage, and the Electron E2E scenario exercises tap tempo, filtering, energy filtering, and list/grid preservation. The user ran `npm test` on Windows on 2026-11-14: **39/39 unit tests passed and 1/1 Electron E2E test passed**. **M3 accepted by the user on 2026-11-14** after the verified run of 39/39 unit tests and 1/1 Electron E2E test. Keep this milestone offline-first; it was not blocked on metadata providers.
 
-## Deferred
+## M4 — Identification and pasted lists (design refinement)
 
-M4–M11 remain unstarted. Do not implement later milestone features before their prerequisites are accepted.
+M4 is the next milestone. The existing build specification describes pasted Artist–Title lists, MusicBrainz candidate identification, match scoring/review, and Cover Art Archive artwork. However, its live MusicBrainz Web Service workflow conflicts with the later design decision and M2 constraints: live MusicBrainz requests are excluded under the no-quota policy, while the inspected static MusicBrainz Canonical Data snapshot is a promising local identity source. Before implementation, resolve the M4 identity source and confirm the Cover Art Archive usage/attribution boundary. Do not silently reintroduce the live MusicBrainz API or treat the older build-spec section as overriding the accepted M2 decision.
+
+Initial M4 design direction to refine:
+- Accept pasted Artist — Title rows as a source independent of YouTube playlist import.
+- Identify against the locally available MusicBrainz Canonical Data snapshot if a bounded, practical lookup/index can be built; preserve candidate ambiguity and require review for uncertain matches.
+- Keep canonical song identity separate from the pasted source text; never silently overwrite user input.
+- Use a release MBID to request Cover Art Archive artwork only after its current usage and attribution requirements are confirmed.
+- Keep metadata provenance, confidence, and user corrections distinct.
+
+M5–M11 remain deferred. Do not implement later milestone features before their prerequisites are accepted.
 
 ## Operational notes
 
