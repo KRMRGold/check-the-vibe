@@ -32,7 +32,7 @@ export function registerDeckIpc(db) {
   const decks = createDeckRepository(db);
 
   ipcMain.handle("decks:list", async (_event, payload) => {
-    if (!EmptyInput.safeParse(payload ?? {}).success) {
+    if (!EmptyInput.safeParse(payload === undefined ? {} : payload).success) {
       return failure("INVALID_PAYLOAD", "The deck query is invalid.");
     }
     try { return { ok: true, data: { decks: decks.listDecks() } }; }
