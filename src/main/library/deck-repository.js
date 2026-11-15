@@ -20,6 +20,7 @@ export function createDeckRepository(db) {
     UPDATE decks SET name = ?, description = ?, updated_at = ? WHERE id = ?
   `);
   const deleteDeck = db.prepare("DELETE FROM decks WHERE id = ?");
+  const touchDeck = db.prepare("UPDATE decks SET updated_at = ? WHERE id = ?");
   const insertEntry = db.prepare(`
     INSERT INTO deck_entries (id, deck_id, song_id, position, added_at)
     VALUES (?, ?, ?, ?, ?)
@@ -33,7 +34,10 @@ export function createDeckRepository(db) {
   const removeEntry = db.transaction(({ deckId, entryId }) => {
     if (!findDeck.get(deckId)) throw new Error("DECK_NOT_FOUND");
     const deleted = deleteEntry.run(entryId, deckId).changes > 0;
-    if (deleted) compactPositions(deckId);
+    if (deleted) {
+      compactPositions(deckId);
+      touchDeck.run(new Date().toISOString(), deckId);
+    }
     return deleted;
   });
   const listEntryRows = db.prepare(`
@@ -62,6 +66,7 @@ export function createDeckRepository(db) {
     const addedAt = new Date().toISOString();
     const position = nextPosition.get(deckId).position;
     insertEntry.run(id, deckId, songId, position, addedAt);
+    touchDeck.run(addedAt, deckId);
     return id;
   });
 
@@ -74,6 +79,7 @@ export function createDeckRepository(db) {
       throw new Error("DECK_ORDER_MISMATCH");
     }
     entryIds.forEach((id, position) => updatePosition.run(position, id, deckId));
+    touchDeck.run(new Date().toISOString(), deckId);
   });
 
   return {
