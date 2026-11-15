@@ -173,5 +173,7 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - Persistence behavior: each deck entry has its own ID and position. Removing an entry or deleting a deck does not delete its library song. Deleting a deck cascades only to its entries.
 - Added **7 unit tests** for deck CRUD, duplicate occurrences in one deck, reuse across decks, removing one occurrence, song preservation, position compaction, reorder validation, reorder persistence after database reopen, and deck deletion.
 - Extended the Electron E2E test to create a deck, add the same song twice, add another song, reorder, remove one occurrence, and verify the song remains in the library.
-- **Status: IMPLEMENTED; NOT RUN.** Neither the new deck unit tests nor the extended Electron E2E flow has been executed against this candidate. Do not mark this candidate accepted until the full suite passes.
+- First Windows run (user-reported, candidate before selector fix): **35/35 unit tests passed; Electron E2E failed** at the final library assertion. The selector `.song-title` matched elements from both library and deck areas; the failure was a Playwright strict-mode violation, not a failed deck operation.
+- Follow-up fix committed directly to `main` at `def8f79895b8a2d4cc1052b40a73bebc06cc0493`: scope the final assertion to `#song-list .song-title`. This fix has **not yet been rerun**.
+- **Status: IMPLEMENTED; VERIFICATION IN PROGRESS.** Do not mark this candidate accepted until the full suite passes.
 - Next: run `npm test` on this exact candidate, repair any failures, then continue with any remaining M3 scope and acceptance.
