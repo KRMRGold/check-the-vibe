@@ -101,10 +101,10 @@ export function createPasteImportMatchingRepository(db, {
         );
 
         for (const release of candidate.releases ?? []) {
-          if (!release.releaseMbid || !release.releaseName) continue;
+          if (!release.releaseMbid) continue;
           saveRelease.run(
             release.releaseMbid,
-            release.releaseName,
+            release.releaseName ?? "",
             release.releaseGroupMbid ?? null,
             snapshotId,
             now
@@ -161,6 +161,7 @@ export function createPasteImportMatchingRepository(db, {
       const job = loadJob.get(jobId);
       if (!job || job.provider !== "paste") throw new Error("PASTE_IMPORT_NOT_FOUND");
       if (job.status === "done") throw new Error("PASTE_IMPORT_ALREADY_DONE");
+      if (job.status === "cancelled") throw new Error("PASTE_IMPORT_CANCELLED");
 
       processing.add(jobId);
       try {
