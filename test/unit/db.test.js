@@ -35,6 +35,9 @@ test("schema creates required tables and indexes", async () => {
     assert.equal(itemColumns.find((column) => column.name === "video_id").notnull, 0);
     assert.ok(itemColumns.some((column) => column.name === "source_line"));
     assert.ok(itemColumns.some((column) => column.name === "parse_error"));
+    assert.ok(itemColumns.some((column) => column.name === "matched_recording_mbid"));
+    const jobColumns = db.prepare("PRAGMA table_info(import_jobs)").all();
+    assert.ok(jobColumns.some((column) => column.name === "snapshot_id"));
   } finally {
     db.close();
     await rm(dir, { recursive: true, force: true });
@@ -62,9 +65,9 @@ test("migrations apply once and are idempotent", async () => {
   try {
     const first = await runMigrations(db, { databasePath: path });
     const second = await runMigrations(db, { databasePath: path });
-    assert.deepEqual(first.applied, [1, 2]);
+    assert.deepEqual(first.applied, [1, 2, 3]);
     assert.deepEqual(second.applied, []);
-    assert.equal(db.prepare("SELECT COUNT(*) AS count FROM schema_migrations").get().count, 2);
+    assert.equal(db.prepare("SELECT COUNT(*) AS count FROM schema_migrations").get().count, 3);
   } finally {
     db.close();
     await rm(dir, { recursive: true, force: true });
