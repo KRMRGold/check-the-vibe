@@ -79,8 +79,12 @@ export function registerLibraryIpc(db) {
         archivePath: selected.filePaths[0],
         signal: controller.signal,
         onProgress: (progress) => {
-          if (!event.sender.isDestroyed()) {
-            event.sender.send("library:match-progress", { jobId: parsed.data.id, ...progress });
+          try {
+            if (!event.sender.isDestroyed()) {
+              event.sender.send("library:match-progress", { jobId: parsed.data.id, ...progress });
+            }
+          } catch {
+            // Progress is informational; a closed renderer must not fail the import.
           }
         }
       });
