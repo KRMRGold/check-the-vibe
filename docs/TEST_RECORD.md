@@ -208,3 +208,14 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - Follow-up fix committed directly to `main` at `def8f79895b8a2d4cc1052b40a73bebc06cc0493`: scope the final assertion to `#song-list .song-title`.
 - Second Windows run (user-reported after pulling the fix): **35/35 unit tests passed; 1/1 Electron E2E test passed** (`npm test`).
 - **Status: IMPLEMENTED AND VERIFIED.** This verifies the current deck-management implementation and the tested user flows; it does not by itself mean the entire M3 milestone is accepted.
+
+
+## M4 paste-import foundation — implementation added; local execution pending
+
+- Added migration `0002_paste_imports_and_musicbrainz.sql`: rebuilds `import_items` with nullable `video_id`, preserves existing rows, adds raw source-line and parse-error fields, and creates separate canonical recording, release, and recording-release association tables.
+- Added paste-line parsing and transactional staging through the existing import-job/item tables. Original line text and order are retained; blank/malformed lines are stored as unmatched instead of discarded.
+- Exposed `library.importPaste` through validated IPC and the isolated preload API.
+- Added a streaming CSV parser using `StringDecoder`, plus tests for UTF-8 characters split across byte chunks, quoted commas, escaped quotes, and quoted newlines.
+- Added unit coverage for paste parsing, persistence, schema shape, migration idempotence, and preservation of existing YouTube import items.
+- **Execution status: NOT RUN IN THE USER'S LOCAL ENVIRONMENT.** No PASS claim is made. Run `npm run test:unit` after pulling the changes.
+- **Remaining M4 work:** canonical snapshot matching using the established thresholds and redirect rules; item candidate persistence and review/confirmation; integration into the library UI. The staging API alone does not complete M4.
