@@ -180,6 +180,13 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - **Complete test command: PASS.** No failures were reported.
 - **Status: IMPLEMENTED AND VERIFIED.** This verifies the current library UX slice; full M3 milestone acceptance remains a separate user decision.
 
+
+### M3 milestone acceptance
+
+- **Status: ACCEPTED by the user on 2026-11-14.**
+- Acceptance evidence: user ran `npm test` after pulling the M3 library UX changes; 39 unit tests passed and 1 Electron E2E test passed.
+- Acceptance applies to the M3 library and deck scope recorded above. It does not imply acceptance of deferred M4–M11 features.
+
 ## M3 deck management — verified
 
 - Verified source: `main` at commit `155dc2d33ba0e3f23cef5b4947cf1fb95006f7de` (includes documentation of the passing rerun).
