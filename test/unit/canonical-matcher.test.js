@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { Readable } from "node:stream";
 import {
+  CANONICAL_MATCH_LIMITS,
   CANONICAL_MATCH_THRESHOLDS,
   matchCanonicalStreams,
   normalizeCanonicalText,
@@ -151,4 +152,83 @@ test("missing canonical recording MBIDs are ignored", async () => {
   });
   assert.equal(result.matchStatus, "no_match");
   assert.deepEqual(result.candidates, []);
+});
+
+
+test("candidate overflow remains review-only even when retained aliases collapse to one canonical recording", async () => {
+  const catalog = Array.from(
+    { length: CANONICAL_MATCH_LIMITS.candidatesPerTrackAndType + 1 },
+    (_, index) => canonicalRow({ recording: `alias-${index}`, release: `release-${index}` })
+  );
+  const recordingRedirects = catalog.map((row) => [
+    row[6], "one-canonical-recording", "one-canonical-release"
+  ]);
+  const data = streams({ catalog, recordingRedirects });
+  const [result] = await matchCanonicalStreams({
+    ...data,
+    tracks: [{ artist: "Artist", title: "Song" }]
+  });
+
+  assert.equal(result.matchStatus, "candidate_limit_exceeded");
+  assert.equal(result.candidateLimitType, "exact");
+  assert.equal(result.exactMatchCount, null);
+  assert.equal(result.candidates.length, 1);
+  assert.equal(result.candidates[0].recordingMbid, "one-canonical-recording");
+});
+
+test("release associations are capped and explicitly marked without changing an exact identity match", async () => {
+  const catalog = Array.from(
+    { length: CANONICAL_MATCH_LIMITS.releasesPerCandidate + 3 },
+    (_, index) => canonicalRow({ recording: "one-recording", release: `release-${index}` })
+  );
+  const data = streams({ catalog });
+  const [result] = await matchCanonicalStreams({
+    ...data,
+    tracks: [{ artist: "Artist", title: "Song" }]
+  });
+
+  assert.equal(result.matchStatus, "exact_single");
+  assert.equal(result.candidates.length, 1);
+  assert.equal(result.candidates[0].releases.length, CANONICAL_MATCH_LIMITS.releasesPerCandidate);
+  assert.equal(result.candidates[0].releasesTruncated, true);
+});
+
+test("fuzzy candidate overflow is reported instead of presenting a partial shortlist as complete", async () => {
+  const catalog = Array.from(
+    { length: CANONICAL_MATCH_LIMITS.candidatesPerTrackAndType + 1 },
+    (_, index) => canonicalRow({
+      artist: "Beatles",
+      title: "Hey Jud",
+      recording: `fuzzy-recording-${index}`
+    })
+  );
+  const data = streams({ catalog });
+  const [result] = await matchCanonicalStreams({
+    ...data,
+    tracks: [{ artist: "The Beatles", title: "Hey Jude" }]
+  });
+
+  assert.equal(result.matchStatus, "candidate_limit_exceeded");
+  assert.equal(result.candidateLimitType, "fuzzy");
+  assert.equal(result.candidates.length, 5);
+});
+
+test("title-only candidate overflow is marked for review", async () => {
+  const catalog = Array.from(
+    { length: CANONICAL_MATCH_LIMITS.candidatesPerTrackAndType + 1 },
+    (_, index) => canonicalRow({
+      artist: `Unrelated Performer ${index}`,
+      title: "Shared Title",
+      recording: `title-only-${index}`
+    })
+  );
+  const data = streams({ catalog });
+  const [result] = await matchCanonicalStreams({
+    ...data,
+    tracks: [{ artist: "Requested Performer", title: "Shared Title" }]
+  });
+
+  assert.equal(result.matchStatus, "candidate_limit_exceeded");
+  assert.equal(result.candidateLimitType, "title_only");
+  assert.equal(result.titleOnlyCandidateCount, null);
 });
