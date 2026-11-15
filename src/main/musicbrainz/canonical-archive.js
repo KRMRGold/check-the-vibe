@@ -120,6 +120,8 @@ async function* decompressedTarChunks(archivePath, {
   };
   signal?.addEventListener("abort", onAbort, { once: true });
   source.on("error", (error) => decompressed.destroy(error));
+  // Prevent a destroy(error) race before the async iterator attaches its listener.
+  decompressed.on("error", () => {});
   source.pipe(decompressed);
   try {
     throwIfAborted(signal);
