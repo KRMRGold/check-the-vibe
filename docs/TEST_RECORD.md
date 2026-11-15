@@ -160,13 +160,14 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - Deck management candidate: create/list/rename/delete decks; optional descriptions; add library songs to decks; allow repeated occurrences of the same song; remove one occurrence; reorder entries; browse and search library songs while viewing a deck.
 - The existing schema supports this without a migration: `decks` owns deck metadata, while `deck_entries` stores independent occurrence IDs and positions.
 - Seven unit tests and an extended Electron E2E scenario have been added for deck behavior.
-- Prior library-only candidate passed 28 unit tests and 1 Electron E2E test on the user's Windows environment. The deck candidate has not yet been run; see the M3 deck management candidate record above.
-- Remaining M3 scope: verify the deck candidate, address failures, review any remaining library filtering and deck UX needs, and obtain M3 acceptance.
+- User ran the complete deck candidate on Windows: **35/35 unit tests passed and 1/1 Electron E2E test passed** after the selector correction.
+- The first E2E attempt exposed a Playwright strict-mode selector collision; the assertion was scoped to `#song-list .song-title` and the complete rerun passed.
+- Deck management implementation and tests are now verified. Remaining M3 scope: review any remaining library filtering and deck UX needs, complete milestone acceptance, and confirm any remaining M3 requirements.
 
 
-## M3 deck management — candidate, not yet executed
+## M3 deck management — verified
 
-- Candidate source: `main` at commit `35f52e552bff6c9d9668e78b440cc16ffe798fad`.
+- Verified source: `main` at commit `155dc2d33ba0e3f23cef5b4947cf1fb95006f7de` (includes documentation of the passing rerun).
 - Prior verified baseline: commit `fc89000`; user ran `npm test`: **28/28 unit tests passed and 1/1 Electron E2E test passed**. That result predates all deck changes.
 - Schema inspection: migration `0001_init.sql` already defines `decks` and `deck_entries`. No schema change or migration was needed.
 - Implemented: deck create/list/update/delete; deck descriptions; add/list/remove entries; duplicate song occurrences; one library song reusable across decks; validated full-order reordering; contiguous position compaction after removal; activity timestamp updates; deck management and contents UI.
@@ -174,6 +175,6 @@ Only record PASS when supported by exact command output or direct user-confirmed
 - Added **7 unit tests** for deck CRUD, duplicate occurrences in one deck, reuse across decks, removing one occurrence, song preservation, position compaction, reorder validation, reorder persistence after database reopen, and deck deletion.
 - Extended the Electron E2E test to create a deck, add the same song twice, add another song, reorder, remove one occurrence, and verify the song remains in the library.
 - First Windows run (user-reported, candidate before selector fix): **35/35 unit tests passed; Electron E2E failed** at the final library assertion. The selector `.song-title` matched elements from both library and deck areas; the failure was a Playwright strict-mode violation, not a failed deck operation.
-- Follow-up fix committed directly to `main` at `def8f79895b8a2d4cc1052b40a73bebc06cc0493`: scope the final assertion to `#song-list .song-title`. This fix has **not yet been rerun**.
-- **Status: IMPLEMENTED; VERIFICATION IN PROGRESS.** Do not mark this candidate accepted until the full suite passes.
-- Next: run `npm test` on this exact candidate, repair any failures, then continue with any remaining M3 scope and acceptance.
+- Follow-up fix committed directly to `main` at `def8f79895b8a2d4cc1052b40a73bebc06cc0493`: scope the final assertion to `#song-list .song-title`.
+- Second Windows run (user-reported after pulling the fix): **35/35 unit tests passed; 1/1 Electron E2E test passed** (`npm test`).
+- **Status: IMPLEMENTED AND VERIFIED.** This verifies the current deck-management implementation and the tested user flows; it does not by itself mean the entire M3 milestone is accepted.
