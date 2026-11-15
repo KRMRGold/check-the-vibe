@@ -232,3 +232,42 @@ test("title-only candidate overflow is marked for review", async () => {
   assert.equal(result.candidateLimitType, "title_only");
   assert.equal(result.titleOnlyCandidateCount, null);
 });
+
+
+test("reports phase-based progress for catalog and both redirect streams", async () => {
+  const data = streams({
+    catalog: [canonicalRow()],
+    recordingRedirects: [["recording-1", "recording-1", "release-1"]],
+    releaseRedirects: [["release-1", "release-1", "group-1"]]
+  });
+  const progress = [];
+  await matchCanonicalStreams({
+    ...data,
+    tracks: [{ artist: "Artist", title: "Song" }],
+    onProgress: (entry) => progress.push(entry)
+  });
+
+  assert.deepEqual(progress.map((entry) => entry.phase), [
+    "catalog", "recording_redirects", "release_redirects"
+  ]);
+  assert.ok(progress.every((entry) => entry.rowsProcessed === 1));
+});
+
+test("aborts canonical matching during a streamed catalog read", async () => {
+  const controller = new AbortController();
+  async function* delayedCsv() {
+    yield csv(canonicalHeader, []);
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    yield csv([], [canonicalRow()]);
+  }
+  const data = streams();
+  const canonicalCsv = Readable.from(delayedCsv());
+  const promise = matchCanonicalStreams({
+    ...data,
+    canonicalCsv,
+    tracks: [{ artist: "Artist", title: "Song" }],
+    signal: controller.signal
+  });
+  setTimeout(() => controller.abort(), 5);
+  await assert.rejects(promise, (error) => error.name === "AbortError" && error.code === "ABORT_ERR");
+});
