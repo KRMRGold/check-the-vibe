@@ -202,7 +202,8 @@ test("streams multiple selected TAR members in archive order with backpressure",
   const releaseRedirects = Buffer.from("release-redirect,".repeat(12000));
   const archive = makeArchive([
     tarMember("snapshot/TIMESTAMP", "2026-11-03"),
-    tarMember("snapshot/canonical/data.csv", canonical.toString("utf8")),
+    tarMember("PaxHeaders/data", paxPathRecord("snapshot/canonical/data.csv"), "x"),
+    tarMember("placeholder.csv", canonical.toString("utf8")),
     tarMember("snapshot/recording.csv", recordingRedirects.toString("utf8")),
     tarMember("snapshot/release.csv", releaseRedirects.toString("utf8"))
   ]);
