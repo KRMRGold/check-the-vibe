@@ -17,6 +17,18 @@ const REQUIRED_COLUMNS = [
   "release_mbid", "release_name", "recording_mbid", "recording_name",
   "artist_credit_name", "artist_mbids"
 ];
+const PROGRESS_INTERVAL_ROWS = 100_000;
+
+function createAbortError() {
+  const error = new Error("Canonical matching was cancelled.");
+  error.name = "AbortError";
+  error.code = "ABORT_ERR";
+  return error;
+}
+
+function throwIfAborted(signal) {
+  if (signal?.aborted) throw createAbortError();
+}
 
 export function normalizeCanonicalText(value) {
   return String(value ?? "").normalize("NFKD").replace(/\p{M}/gu, "")
@@ -148,9 +160,16 @@ function addRelease(candidate, releaseMbid, releaseName = null) {
   }
 }
 
-async function* rowsWithHeader(readable, label) {
+async function* rowsWithHeader(readable, label, {
+  signal,
+  onProgress,
+  phase
+} = {}) {
   let headers = null;
+  let rowsProcessed = 0;
+  let lastReportedRows = 0;
   for await (const row of parseCsvStream(readable)) {
+    throwIfAborted(signal);
     if (!headers) {
       headers = row.map((value) => value.trim());
       continue;
@@ -158,9 +177,16 @@ async function* rowsWithHeader(readable, label) {
     if (row.length !== headers.length) {
       throw new Error(`Malformed ${label} CSV row: expected ${headers.length} columns, received ${row.length}.`);
     }
+    rowsProcessed += 1;
+    if (onProgress && rowsProcessed - lastReportedRows >= PROGRESS_INTERVAL_ROWS) {
+      lastReportedRows = rowsProcessed;
+      onProgress({ phase, rowsProcessed });
+    }
     yield Object.fromEntries(headers.map((header, index) => [header, row[index]]));
   }
+  throwIfAborted(signal);
   if (!headers) throw new Error(`${label} CSV is empty.`);
+  if (onProgress && rowsProcessed !== lastReportedRows) onProgress({ phase, rowsProcessed });
 }
 
 function requireColumns(row, columns, label) {
@@ -220,10 +246,12 @@ function compareCandidates(left, right) {
     left.recordingName.localeCompare(right.recordingName);
 }
 
-async function collectCatalogCandidates(readable, tracks) {
+async function collectCatalogCandidates(readable, tracks, { signal, onProgress } = {}) {
   const { states, byTitle, byArtistGram } = buildInputStates(tracks);
   let headerChecked = false;
-  for await (const row of rowsWithHeader(readable, "canonical")) {
+  for await (const row of rowsWithHeader(readable, "canonical", {
+    signal, onProgress, phase: "catalog"
+  })) {
     if (!headerChecked) {
       requireColumns(row, REQUIRED_COLUMNS, "canonical");
       headerChecked = true;
@@ -273,18 +301,22 @@ async function collectCatalogCandidates(readable, tracks) {
   return states;
 }
 
-async function readRecordingRedirects(readable, candidateIds) {
+async function readRecordingRedirects(readable, candidateIds, { signal, onProgress } = {}) {
   const redirects = new Map();
-  for await (const row of rowsWithHeader(readable, "recording redirect")) {
+  for await (const row of rowsWithHeader(readable, "recording redirect", {
+    signal, onProgress, phase: "recording_redirects"
+  })) {
     requireColumns(row, ["recording_mbid", "canonical_recording_mbid", "canonical_release_mbid"], "recording redirect");
     if (candidateIds.has(row.recording_mbid)) redirects.set(row.recording_mbid, row);
   }
   return redirects;
 }
 
-async function readReleaseRedirects(readable, candidateReleaseIds) {
+async function readReleaseRedirects(readable, candidateReleaseIds, { signal, onProgress } = {}) {
   const redirects = new Map();
-  for await (const row of rowsWithHeader(readable, "release redirect")) {
+  for await (const row of rowsWithHeader(readable, "release redirect", {
+    signal, onProgress, phase: "release_redirects"
+  })) {
     requireColumns(row, ["release_mbid", "canonical_release_mbid", "release_group_mbid"], "release redirect");
     if (candidateReleaseIds.has(row.release_mbid)) redirects.set(row.release_mbid, row);
   }
@@ -396,37 +428,55 @@ function canonicalizeCandidates(states, recordingRedirects, releaseRedirects) {
     };
   });
 }
-async function streamCatalog(readable, tracks) {
-  return collectCatalogCandidates(readable, tracks);
+async function streamCatalog(readable, tracks, options) {
+  return collectCatalogCandidates(readable, tracks, options);
 }
 
 export async function matchCanonicalStreams({
   canonicalCsv,
   recordingRedirectCsv,
   releaseRedirectCsv,
-  tracks
+  tracks,
+  signal,
+  onProgress
 }) {
   if (!canonicalCsv || !recordingRedirectCsv || !releaseRedirectCsv) {
     throw new TypeError("Canonical CSV and both redirect streams are required.");
   }
-  const states = await streamCatalog(canonicalCsv, tracks);
-  const candidateIds = new Set();
-  const candidateReleaseIds = new Set();
-  for (const state of states) {
-    for (const map of [state.exact, state.titleOnly, state.fuzzy]) {
-      for (const candidate of map.values()) {
-        candidateIds.add(candidate.sourceRecordingMbid);
-        for (const release of candidate.releases.keys()) candidateReleaseIds.add(release);
+  throwIfAborted(signal);
+  const streams = [canonicalCsv, recordingRedirectCsv, releaseRedirectCsv];
+  const abortStreams = () => {
+    const error = createAbortError();
+    for (const stream of streams) stream.destroy?.(error);
+  };
+  signal?.addEventListener("abort", abortStreams, { once: true });
+  try {
+    throwIfAborted(signal);
+    const options = { signal, onProgress };
+    const states = await streamCatalog(canonicalCsv, tracks, options);
+    throwIfAborted(signal);
+    const candidateIds = new Set();
+    const candidateReleaseIds = new Set();
+    for (const state of states) {
+      for (const map of [state.exact, state.titleOnly, state.fuzzy]) {
+        for (const candidate of map.values()) {
+          candidateIds.add(candidate.sourceRecordingMbid);
+          for (const release of candidate.releases.keys()) candidateReleaseIds.add(release);
+        }
       }
     }
-  }
 
-  const recordingRedirects = await readRecordingRedirects(recordingRedirectCsv, candidateIds);
-  for (const redirect of recordingRedirects.values()) {
-    if (redirect.canonical_release_mbid) candidateReleaseIds.add(redirect.canonical_release_mbid);
+    const recordingRedirects = await readRecordingRedirects(recordingRedirectCsv, candidateIds, options);
+    throwIfAborted(signal);
+    for (const redirect of recordingRedirects.values()) {
+      if (redirect.canonical_release_mbid) candidateReleaseIds.add(redirect.canonical_release_mbid);
+    }
+    const releaseRedirects = await readReleaseRedirects(releaseRedirectCsv, candidateReleaseIds, options);
+    throwIfAborted(signal);
+    return canonicalizeCandidates(states, recordingRedirects, releaseRedirects);
+  } finally {
+    signal?.removeEventListener("abort", abortStreams);
   }
-  const releaseRedirects = await readReleaseRedirects(releaseRedirectCsv, candidateReleaseIds);
-  return canonicalizeCandidates(states, recordingRedirects, releaseRedirects);
 }
 
 function findMember(members, suffix, label) {
@@ -437,9 +487,16 @@ function findMember(members, suffix, label) {
   return found[0].name;
 }
 
-export async function matchCanonicalArchive({ archivePath, tracks, snapshotId = null }) {
+export async function matchCanonicalArchive({
+  archivePath,
+  tracks,
+  snapshotId = null,
+  signal,
+  onProgress
+}) {
   if (typeof archivePath !== "string" || !archivePath) throw new TypeError("A canonical archive path is required.");
-  const members = await listZstdTarMembers(archivePath);
+  throwIfAborted(signal);
+  const members = await listZstdTarMembers(archivePath, { signal, onProgress });
   const canonicalMember = findMember(members, "canonical_musicbrainz_data.csv", "canonical data");
   const recordingRedirectMember = findMember(members, "canonical_recording_redirect.csv", "recording redirect");
   const releaseRedirectMember = findMember(members, "canonical_release_redirect.csv", "release redirect");
@@ -453,13 +510,15 @@ export async function matchCanonicalArchive({ archivePath, tracks, snapshotId = 
       canonicalMember,
       recordingRedirectMember,
       releaseRedirectMember
-    ]);
+    ], { signal });
     try {
       results = await matchCanonicalStreams({
         canonicalCsv: archiveStreams.streams.get(canonicalMember),
         recordingRedirectCsv: archiveStreams.streams.get(recordingRedirectMember),
         releaseRedirectCsv: archiveStreams.streams.get(releaseRedirectMember),
-        tracks
+        tracks,
+        signal,
+        onProgress
       });
       await archiveStreams.done;
     } catch (error) {
@@ -470,13 +529,17 @@ export async function matchCanonicalArchive({ archivePath, tracks, snapshotId = 
   } else {
     // If the archive member order differs, retain the safe sequential fallback.
     results = await matchCanonicalStreams({
-      canonicalCsv: openZstdTarMember(archivePath, canonicalMember),
-      recordingRedirectCsv: openZstdTarMember(archivePath, recordingRedirectMember),
-      releaseRedirectCsv: openZstdTarMember(archivePath, releaseRedirectMember),
-      tracks
+      canonicalCsv: openZstdTarMember(archivePath, canonicalMember, { signal }),
+      recordingRedirectCsv: openZstdTarMember(archivePath, recordingRedirectMember, { signal }),
+      releaseRedirectCsv: openZstdTarMember(archivePath, releaseRedirectMember, { signal }),
+      tracks,
+      signal,
+      onProgress
     });
   }
 
+  throwIfAborted(signal);
+  onProgress?.({ phase: "complete" });
   return {
     snapshotId: snapshotId ?? basename(archivePath),
     results
