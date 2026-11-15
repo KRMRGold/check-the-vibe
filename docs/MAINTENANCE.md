@@ -9,7 +9,7 @@
 - M0 tested commit: `c583b2efd3dbfcb3b49638aa0c599f791bfcb5c2`
 - M0 acceptance tag: `m0-v0.0.1` (pushed; verified to target the tested M0 commit)
 - Current branch: main
-- Database schema: migration 0001
+- Database schema: migrations 0001–0003
 - Provider mode: fixture by default; live mode is explicit
 
 ## Accepted milestones
@@ -95,6 +95,17 @@ M4 direction accepted by the user on 2026-11-14:
 Schema inspection confirms `songs.mbid_recording` is unique but there is no release-MBID association table; `songs.album` cannot represent multiple releases. `import_items.video_id` is NOT NULL, so the current import-item table cannot store pasted-list rows as-is. Choose and test a small migration that supports multiple release associations and pasted source occurrences before implementing M4 persistence; do not overwrite source lines with corrected or catalog-derived text.
 
 M5–M11 remain deferred. Do not implement later milestone features before their prerequisites are accepted.
+
+## M4 paste matching and persistence
+
+- Paste jobs remain in `running` state after staging; malformed source lines remain retained as unmatched rows.
+- `createPasteImportMatchingRepository()` streams the staged valid rows through the canonical archive matcher and persists the snapshot ID, per-row match evidence, candidate recording metadata, release metadata, and recording-to-release associations.
+- Only a single exact canonical recording match is automatically marked `matched` and stored in `matched_recording_mbid`. Fuzzy, multiple-exact, and title-only results remain `needs_review`; no-match and malformed rows remain `unmatched`.
+- Canonical identity matching is deliberately separate from library song creation. Matching never creates a row in `songs` or sets `chosen_song_id`.
+- Migration 0003 adds `import_jobs.snapshot_id` and `import_items.matched_recording_mbid`.
+- The main-process IPC offers a native file picker for the local `.zst` snapshot; the renderer-facing preload method is `ctv.library.matchPaste({ id })`. The review/confirmation UI is not implemented yet.
+- A failed match leaves staged item states and candidate data untouched and marks the job failed so it can be retried. Completed jobs cannot be processed again.
+- The archive wrapper still decompresses the TAR three times for a full match. Do not run a full 7.7 GB snapshot match until archive traversal is optimized; fixture-based processing tests are the next verification step.
 
 ## Operational notes
 
