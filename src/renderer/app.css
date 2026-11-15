@@ -5,3 +5,8 @@
 @media(max-width:700px){.deck-entry{grid-template-columns:25px minmax(0,1fr) auto;gap:8px;padding:10px}.deck-entry-actions{flex-wrap:wrap}.deck-actions{flex-wrap:wrap}.deck-toolbar{align-items:flex-start}.sidebar-section-heading,.deck-nav-list{display:none}}
 
 [hidden]{display:none!important}
+
+
+.library-filters{margin:12px 0 0;border:1px solid #302630;border-radius:4px;background:#17141a}.library-filters summary{padding:10px 13px;color:#b99bad;font-size:11px;cursor:pointer;list-style-position:inside}.filter-fields{display:grid;grid-template-columns:repeat(5,minmax(100px,1fr)) auto;gap:10px;align-items:end;padding:0 13px 13px}.filter-fields label{display:grid;gap:6px;color:#a99eaa;font-size:10px}.filter-fields input{min-width:0;width:100%;padding:8px;border:1px solid #403541;border-radius:3px;background:#111014;color:#f2edf1;font-size:11px}.filter-fields button{white-space:nowrap}.bpm-input-row{display:flex;gap:8px;align-items:center}.bpm-input-row input{flex:1;min-width:0}.bpm-input-row button{flex:0 0 auto}.bpm-field .field-hint{min-height:12px}
+@media(max-width:900px){.filter-fields{grid-template-columns:repeat(3,minmax(90px,1fr))}}
+@media(max-width:600px){.filter-fields{grid-template-columns:repeat(2,minmax(90px,1fr))}}
