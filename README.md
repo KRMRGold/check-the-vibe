@@ -46,7 +46,7 @@ CTV_PROVIDER_MODE defaults to fixture. Set it to live only when a later mileston
 
 ## Current implementation boundary
 
-M0 establishes the Electron shell, secure renderer boundary, loopback content server, SQLite schema and migration runner, and automated test/packaging configuration. M3 now includes the manual local song library and an implemented-but-not-yet-verified deck management candidate, including deck CRUD, repeated song occurrences, ordering, and a renderer workflow. Import, playback, enrichment, and game features remain future milestones.
+M0 establishes the Electron shell, secure renderer boundary, loopback content server, SQLite schema and migration runner, and automated test/packaging configuration. M3 includes the manual local song library and verified deck management: deck CRUD, repeated song occurrences, ordering, and a renderer workflow. The current user-reported Windows run passed 35/35 unit tests and 1/1 Electron E2E test. Import, playback, enrichment, and game features remain future milestones.
 
 ## M2: Local FMA metadata comparison
 
